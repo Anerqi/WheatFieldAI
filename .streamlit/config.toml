@@ -1,0 +1,12 @@
+[theme]
+primaryColor="#b25f41"
+backgroundColor="#fdfdfd"
+secondaryBackgroundColor="#f8f5f0"
+textColor="#3c3c3a"
+font="sans serif"
+
+[server]
+# 与 app.py 上传校验口径一致：单张不超过 20 MB（避免控件文案显示 200MB 造成误导）
+maxUploadSize = 20
+# 启用 static/ 目录静态服务，供 @font-face 加载 SmileySans（得意黑）woff2 字体与 favicon
+enableStaticServing = true

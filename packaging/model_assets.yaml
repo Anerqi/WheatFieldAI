@@ -1,0 +1,35 @@
+# packaging/model_assets.yaml
+version: 1
+sha256_policy: "前缀为任务 08 QA 验证时记录的真实文件 SHA-256 前 12 位；若文件被替换，用 `python -B packaging/check_models.py --print-sha256` 重新记录并更新本文件。路径一律以 config.yaml 为准（本文件不存放路径）。"
+
+assets:
+  - id: weed_yolo11s
+    task: weed
+    filename: baseline_best.pt
+    nominal_size_mb: 19.3
+    sha256_prefix: "51004fe018b0"
+  - id: weed_yolox_small
+    task: weed
+    filename: best_ckpt.pth
+    nominal_size_mb: 301.6
+    sha256_prefix: "12a330520911"
+  - id: weed_yolox_base
+    task: weed
+    filename: best_ckpt.pth
+    nominal_size_mb: 567.3
+    sha256_prefix: "444430afbddb"
+  - id: pest_yolo11m
+    task: pest
+    filename: best.pt
+    nominal_size_mb: 121.0
+    sha256_prefix: "89b24e5f6c7b"
+  - id: pest_yolo11l
+    task: pest
+    filename: best.pt
+    nominal_size_mb: 152.8
+    sha256_prefix: "fc30801900db"
+  - id: pest_yolo11s
+    task: pest
+    filename: best.pt
+    nominal_size_mb: 19.3
+    sha256_prefix: "bd4efeb1cb1b"

@@ -1,0 +1,29 @@
+# Model weights and generated/runtime assets
+models/
+logs/
+outputs/
+screenshots/
+test_images/*
+!test_images/README.md
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Local secrets and machine-specific overrides
+.env
+.env.*
+*.local
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+

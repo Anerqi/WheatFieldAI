@@ -1,0 +1,136 @@
+# ============================================================
+# 小麦田间杂草 + 害虫双任务识别系统 · 配置（WheatFieldAI 封装版）
+# 术语与指标口径：见 README.md 与 THIRD_PARTY_NOTICES.md
+# 杂草指标口径：任务 05/07；害虫指标口径：害虫提交包（本地验证集）
+# 权重路径支持环境变量覆盖（见文件底部 env 说明）。
+# 封装适配：相对路径以本文件所在目录（项目根）为基准解析为绝对路径。
+# ============================================================
+
+# 推理设备：auto（CUDA 可用则用 CUDA，否则 CPU）/ cuda / cpu
+device: auto
+
+# ------------------------------------------------------------
+# 杂草检测（任务 07 已验证路线，完整保留）
+# ------------------------------------------------------------
+weed:
+  paths:
+    # YOLO11s 教师模型（任务 03/07 验证）
+    yolo11_weights: "models/weed/yolo11s/baseline_best.pt"
+    # YOLOX-Dinov3 Small（任务 02/03/05 验证）
+    yolox_small_weights: "models/weed/dinov3_small/best_ckpt.pth"
+    # YOLOX-Dinov3 Base（任务 04/05/06 验证）
+    yolox_base_weights: "models/weed/dinov3_base/best_ckpt.pth"
+
+  # 推理参数（与任务 03/05 评测一致，界面不暴露）
+  inference:
+    yolo11_conf: 0.001
+    yolo11_iou: 0.70
+    yolo11_imgsz: 960
+    yolox_conf: 0.01
+    yolox_nms: 0.65
+    yolox_imgsz: 640
+
+  # WBF 融合参数：任务 05 最佳配置（固定，界面不暴露；不得用于害虫 classwise WBF）
+  wbf:
+    iou_thr: 0.65
+    skip_box_thr: 0.01
+    conf_type: "max"          # max / avg
+    weights: [1.0, 1.0, 1.0]  # YOLO11s : YOLOX Small : YOLOX Base
+
+  # 类别映射（杂草 1 类；害虫 32 类名称唯一数据源：configs/dataset.yaml names 段）
+  class_mapping:
+    yolo_class_id: 0
+    coco_category_id: 1
+    category_name: "Obonianghao"
+
+# ------------------------------------------------------------
+# 害虫检测（任务 08 新增，32 类）
+# ------------------------------------------------------------
+pest:
+  paths:
+    # 三套权重（封装版：复制到 models/ 分目录，同名文件靠目录区分）
+    yolo11m_weights: "models/pest/yolo11m/best.pt"
+    yolo11l_weights: "models/pest/yolo11l/best.pt"
+    yolo11s_weights: "models/pest/yolo11s/best.pt"
+  # 32 类名称唯一数据源（YOLO 数据集配置，names 段）
+  dataset_yaml: "configs/dataset.yaml"
+  # refined classwise WBF 配置（提交包最终方案，唯一数据源）
+  classwise_config: "configs/classwise_ensemble_11m11l11s_960_refined_current.json"
+
+  # 推理参数（与提交包 export_ensemble_zip.py 一致：conf=0.001, iou=0.7, imgsz=960）
+  inference:
+    conf: 0.001
+    iou: 0.70
+    imgsz: 960
+
+  # 快速单模型使用哪个权重
+  fast_model: "yolo11m"
+
+# ------------------------------------------------------------
+# 上传限制（通用）
+# ------------------------------------------------------------
+upload:
+  allowed_extensions: [".jpg", ".jpeg", ".png"]
+  max_file_size_mb: 20
+  max_files_per_batch: 10
+
+# ------------------------------------------------------------
+# 危害等级阈值（杂草与害虫分开配置节点；均为原型规则，需农学专家校准）
+# 密度单位：每百万像素检测框数 = 检测框数 / (宽×高) × 1e6
+# ------------------------------------------------------------
+hazard:
+  weed:
+    light_max_per_mp: 10.0    # 密度 < 10  -> 轻
+    medium_max_per_mp: 40.0   # 10 <= 密度 < 40 -> 中；>= 40 -> 重
+    density_unit: "det_per_mp"
+    prototype_note: "杂草原型规则：当前阈值基于检测密度估算，需农学专家校准，不得作为正式农业决策依据。"
+  pest:
+    light_max_per_mp: 5.0     # 密度 < 5 且类别数少 -> 轻
+    medium_max_per_mp: 15.0   # 5 <= 密度 < 15 或主要类别 3-5 类 -> 中；>= 15 或 >= 6 类 -> 重
+    major_classes_light_max: 2   # 检出类别数 <= 2 且密度低 -> 轻
+    major_classes_medium_max: 5  # 检出类别数 3-5 且未达重 -> 中；>= 6 -> 重
+    density_unit: "det_per_mp"
+    prototype_note: "害虫原型规则：当前阈值基于每百万像素检测密度与检出主要类别数量估算，尚未按虫种、诱捕时间和田间面积进行农学校准，不得作为正式农业决策依据。"
+
+# ------------------------------------------------------------
+# 防治建议（杂草与害虫分开；不提供具体药剂/剂量/浓度/施用次数/安全间隔期）
+# ------------------------------------------------------------
+advice:
+  weed:
+    light: |
+      检测密度低。建议保持常规田间巡查，抽查复核检测结果并记录发生位置；
+      暂无需干预。如处于苗期，可结合人工除草作业顺带清除零星杂草。
+    medium: |
+      检测密度中等。建议加强巡查频次（如每周 1-2 次），安排人工或机械除草，
+      重点复核检出密集区域；如需采取进一步措施，请先咨询当地农技人员或农学专家。
+    heavy: |
+      检测密度高。建议尽快安排人工复核与人工/机械除草作业，优先处理检出密集区域；
+      如需化学防治，应由持证农技人员依据当地法规与产品标签评估用药种类、剂量与安全间隔期，
+      本系统不提供具体农药处方；必要时联系农学专家现场指导。
+    disclaimer: |
+      原型规则提示：杂草危害等级与防治建议由规则模板自动生成，未经农学专家校准，
+      不构成农业防治处方或正式决策依据；正式应用前需农学专家审核。
+  pest:
+    light: |
+      检出密度低、类别数少。建议保持常规田间巡查，人工复核检出位置并记录虫种与数量；
+      检查诱捕设备是否正常工作；暂无需干预，下次巡查继续跟踪。
+    medium: |
+      检出密度中等或出现多个类别。建议加强巡查频次并安排人工复核，
+      检查诱捕设备（诱虫灯/性诱捕器/粘虫板）的安装位置、数量与效果；
+      如需进一步措施，请先咨询当地农技人员或植保专家，本系统不提供具体药剂处方。
+    heavy: |
+      检出密度高或检出类别数多。建议尽快安排人工复核与田间虫情调查，
+      全面检查诱捕设备并评估其诱集效果；
+      【必须】由农技人员或植保专家现场复核，依据虫种、诱捕时间与田间面积综合评估防治方案；
+      本系统不提供具体药剂、剂量、浓度、施用次数或安全间隔期，严禁据此直接用药。
+    disclaimer: |
+      原型规则提示：害虫危害等级与防治建议由规则模板自动生成，尚未按虫种、诱捕时间和田间面积
+      进行农学校准；系统仅显示检出类别清单，不构成农业处方，任何用药决策须由植保专家完成。
+
+# ------------------------------------------------------------
+# 环境变量覆盖说明：
+#   WHEATWEED_YOLO11_WEIGHTS / WHEATWEED_YOLOX_SMALL_WEIGHTS / WHEATWEED_YOLOX_BASE_WEIGHTS
+#   PEST_YOLO11M_WEIGHTS / PEST_YOLO11L_WEIGHTS / PEST_YOLO11S_WEIGHTS
+#   PEST_DATASET_YAML / PEST_CLASSWISE_CONFIG
+#   WHEATWEED_DEVICE（device: auto/cuda/cpu）
+# ------------------------------------------------------------

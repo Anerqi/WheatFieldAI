@@ -1,0 +1,38 @@
+# List-based split: original images and labels stay untouched.
+path: .
+train: outputs/splits/train.txt
+val: outputs/splits/val.txt
+
+names:
+  0: Ostrinia furnacalis
+  1: Chilo suppressalis
+  2: Cnaphalocrocis medinalis
+  3: Spodoptera spp.
+  4: Anomala exoleta Fald
+  5: Holotrichia diomphalia
+  6: Hydrochara affinis
+  7: Gryllotalpidae
+  8: Sirthenea flavipes
+  9: Naranga aenescens
+  10: copper-green chafer
+  11: Anomala corpulenta
+  12: Plutella xylostella
+  13: Spodoptera litura
+  14: Trichoptera
+  15: Agrotis segetum
+  16: Lymantriinae
+  17: Axylia putris
+  18: Athetis spp.
+  19: Helicoverpa armigera
+  20: Meadow borer
+  21: Little Gecko
+  22: Agriotes fuscicollis Miwa
+  23: Scotogramma trifolii Rottemberg
+  24: Armyworm
+  25: Spodoptera cabbage
+  26: Spodoptera exigua
+  27: Holotrichia parallela
+  28: Yellow tiger
+  29: Land tiger
+  30: Stem borer
+  31: Melahotus

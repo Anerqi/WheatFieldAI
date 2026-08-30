@@ -1,0 +1,10 @@
+# 小麦田间杂草 + 害虫双任务识别系统（任务 08）依赖
+# 注意：PyTorch 与 torchvision 需为 CUDA 版本（本机已装 torch 2.11.0+cu128 / torchvision 0.26.0+cu128），
+# 请勿用 CPU 版 PyTorch 覆盖现有环境。
+streamlit>=1.59
+ultralytics==8.4.81
+opencv-python>=4.10
+numpy>=1.26
+PyYAML>=6.0.3
+Pillow>=10.0
+pandas>=2.0
