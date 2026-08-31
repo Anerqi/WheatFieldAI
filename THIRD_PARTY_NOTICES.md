@@ -33,8 +33,8 @@
 
 | 资产 | 来源与许可 |
 |---|---|
-| `weed_yolo11s_baseline_best.pt`、`pest_yolo11m/l/s_best.pt` | Ultralytics YOLO11 训练；按 AGPL-3.0 分发 |
-| `weed_yolox_dinov3_small/base_best_ckpt.pth` | 基于 Meta DINOv3 lvd1689m 预训练权重微调；受 DINOv3 License 约束（全文未随导出包）——**转公开前须完成书面核验** |
+| `weed_yolo11s_baseline_best.pt`、`pest_yolo11m/l/s_best.pt` | Ultralytics YOLO11 模型及相关实现按 Ultralytics 相应许可框架提供；本项目当前按 **AGPL-3.0** 路径进行公开发布 |
+| `weed_yolox_dinov3_small/base_best_ckpt.pth` | 基于 Meta DINOv3 lvd1689m 预训练权重微调；受 DINOv3 License 约束（全文未随导出包）。**当前仅作为运行资产随本仓库分发管理；公开再分发前需完成书面核验**——转公开时二选一：完成核验后保留，或从 Release 移除该资产 |
 | `dataset_weed_wheatweed_v1.zip` | MADA 赛题一平台数据（DJI 田间图像与标注，train 3142 + val 787）；再分发许可待平台/主办方书面确认 |
 | `dataset_pest_train_images_v1.part1/2.zip`、`dataset_pest_labels_splits_v1.zip` | MADA 赛题二平台数据（train 21634 图与标注；类别体系对应公开学术数据集 IP102）；再分发许可待平台/主办方书面确认 |
 
