@@ -173,10 +173,10 @@ button,[role="button"]{transition:border-color .16s ease-out,color .16s ease-out
 /* 统计表封顶，控制行3高度，避免长表格把整行撑太高 */
 [data-testid="stDataFrame"]{max-height:320px;overflow-y:auto}
 
-/* —— R14：类别统计表收紧（table-layout:fixed + 固定数量列宽 + 去滚动容器，ChatGPT 联合排查结论） —— */
-.class-table{max-height:420px;overflow-y:auto;border:1px solid var(--hairline);border-radius:var(--radius)}
+/* —— R16：类别统计表全量展示（撤销 R15 的 420px 滚动容器：Windows 覆盖式滚动条自动隐藏，14 类时 3 行被静默裁剪且无可发现性；sticky 表头在无滚动容器时会吸附视口顶部，一并移除） —— */
+.class-table{border:1px solid var(--hairline);border-radius:var(--radius)}
 .class-table table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
-.class-table th{position:sticky;top:0;z-index:1;background:#f0ebe2;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.08em;color:#6b5d4f;text-align:left;padding:8px 12px;border-bottom:2px solid #d9c9a8;white-space:nowrap}
+.class-table th{background:#f0ebe2;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.08em;color:#6b5d4f;text-align:left;padding:8px 12px;border-bottom:2px solid #d9c9a8;white-space:nowrap}
 .class-table th.num,.class-table td.num{width:72px;text-align:right}
 .class-table td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--body)}
 .class-table td:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
