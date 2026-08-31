@@ -5,13 +5,13 @@
 
 推理、融合与规则算法沿用已通过真实 CLI / Web 验证的实现（封装层采用整体复制基线 + 增量包装，不重写已验证算法；模块溯源见各文件头注释与 `THIRD_PARTY_NOTICES.md`）。
 
-**完整运行资产**：六套模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；各资产按其来源条款分别管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
+**完整运行资产**：四套 YOLO11 系权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；两套 DINOv3 衍生权重作为本地运行资产单独管理（见 §7.2）。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 > **核心能力概览**：杂草 / 害虫双任务识别 · 高精度融合模式 / 快速单模型模式 · 检测框 / 类别统计 / 危害等级 / 防治方向建议 · 标注 JPG 与结构化 JSON 导出 · 字体与图标本地化，离线可用
 
 ## 1. 项目简介
 
-本项目面向小麦田间生产场景，将"识别"扩展为"识别 → 决策"：用户上传田间图像后，系统给出检测框、按类别统计、基于密度的危害等级与防治方向建议，并可导出标注图与结构化 JSON 供后续系统使用。
+本项目面向小麦田间生产场景，将"识别"进一步延伸至"识别 → 辅助决策"：用户上传田间图像后，系统给出检测框、按类别统计、基于密度的危害等级与防治方向建议，并可导出标注图与结构化 JSON 供后续系统使用。
 
 - 杂草任务：YOLO11s（快速单模型）与 YOLO11s + YOLOX-Dinov3 Small/Base 异构 WBF 融合（高精度融合）两条推理路径；
 - 害虫任务：YOLO11m（快速单模型）与 YOLO11m + YOLO11l + YOLO11s 三模型 refined classwise WBF 融合（高精度融合）两条推理路径；
@@ -151,14 +151,14 @@ WHEATWEED_PORT
 
 类别与融合配置（随仓库提供）：`configs/dataset.yaml`（害虫 32 类类别名唯一数据源）、`configs/classwise_ensemble_11m11l11s_960_refined_current.json`（refined classwise WBF 参数）。
 
-### 7.2 完整运行资产下载（Release）
+### 7.2 运行资产与公开下载
 
-六套权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供，全部**不适用项目 MIT**，按各自来源条款管理：
+四套 YOLO11 系权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；两套 DINOv3 衍生权重作为本地运行资产单独管理。所有资产按各自来源条款管理，不适用项目 MIT 许可证：
 
 ```text
 weed_yolo11s_baseline_best.pt             18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
-weed_yolox_dinov3_small_best_ckpt.pth    288 MB   基于 Meta DINOv3 lvd1689m 微调（按 DINOv3 License 分发，见下）
-weed_yolox_dinov3_base_best_ckpt.pth     541 MB   同上
+weed_yolox_dinov3_small_best_ckpt.pth    288 MB   本地运行资产，不随 Release
+weed_yolox_dinov3_base_best_ckpt.pth     541 MB   本地运行资产，不随 Release
 pest_yolo11m_best.pt                     115 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
 pest_yolo11l_best.pt                     146 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
 pest_yolo11s_best.pt                      18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
@@ -166,7 +166,7 @@ dataset_weed_wheatweed_v1.zip           1.05 GB   杂草 WheatWeed train(3142)+v
 dataset_pest_train_images_v1.part1.zip  ~1.0 GB   害虫训练图片（两卷，解压到同一目录）
 dataset_pest_train_images_v1.part2.zip  ~1.0 GB   害虫训练图片（两卷，解压到同一目录）
 dataset_pest_labels_splits_v1.zip         13 MB   害虫训练标注 + train/val 划分（相对路径）+ 数据集配置
-SHA256SUMS.txt                                    全部资产校验和
+SHA256SUMS.txt                                    校验公开 Release 资产
 ```
 
 **DINOv3 衍生权重说明**：`weed_yolox_dinov3_small_best_ckpt.pth` 与 `weed_yolox_dinov3_base_best_ckpt.pth` 基于 Meta DINOv3 lvd1689m 预训练权重微调，构成 DINOv3 License 意义下的衍生作品，按该协议条款分发；协议副本随仓库提供（`licenses/DINOv3-License.md`）。使用限制（贸易管制、禁止军事等终端用途）以协议原文为准，详见 `THIRD_PARTY_NOTICES.md`。
@@ -180,7 +180,7 @@ python -B packaging/check_models.py
 python -B packaging/check_models.py --print-sha256
 ```
 
-`packaging/model_assets.yaml` 保存六套权重的真实 SHA-256 前 12 位；路径唯一真源仍然是 config.yaml。
+`SHA256SUMS.txt` 用于校验公开 Release 资产；`packaging/model_assets.yaml` 保存六套本地模型权重的真实 SHA-256 前 12 位。路径唯一真源仍然是 config.yaml。
 
 ## 8. 32 类类别体系与 WBF
 
@@ -259,10 +259,10 @@ mAP50-95 = 0.52410
 
 - 本仓库的项目源代码、脚本、配置与文档以 MIT 许可证发布（见 `LICENSE`）；MIT 的覆盖范围与明确排除项见 `LICENSE-BOUNDARY.md`。
 - 第三方组件按各自许可处理，不受项目 MIT 自动覆盖：依赖包与 YOLOX-Dinov3 衍生模型结构（`src/model_config.py`，核验记录见该文件）等逐项说明见 `THIRD_PARTY_NOTICES.md`。
-- Ultralytics YOLO11 相关模型与实现按 Ultralytics 相应许可框架提供；本项目当前按 AGPL-3.0 路径进行公开发布，具体边界见 `THIRD_PARTY_NOTICES.md`。
+- Ultralytics YOLO11 相关模型与实现受 Ultralytics 许可条款约束；本项目公开发布所采用的 YOLO11 资产按 AGPL-3.0 路径处理，具体边界见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 六套权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系权重按 AGPL-3.0 路径处理；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）；数据集为平台数据（再分发确认中）。下载与放置见 §7.2。
+- 四套 YOLO11 系权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集为平台数据（再分发确认中）。两套 DINOv3 衍生权重作为本地运行资产单独管理，按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 真实性声明
