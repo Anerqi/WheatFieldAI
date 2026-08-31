@@ -34,8 +34,8 @@
 | 资产 | 来源与许可 |
 |---|---|
 | `weed_yolo11s_baseline_best.pt`、`pest_yolo11m/l/s_best.pt` | Ultralytics YOLO11 相关模型与实现受 Ultralytics 许可条款约束；本项目公开发布所采用的 YOLO11 资产按 **AGPL-3.0** 路径处理 |
-| `weed_yolox_dinov3_small_best_ckpt.pth`、`weed_yolox_dinov3_base_best_ckpt.pth` | 基于 Meta DINOv3 lvd1689m 预训练权重微调；受 DINOv3 License 约束（全文未随导出包）。**未纳入公开 Release**（已从 Release 资产移除；本地副本仅作运行资产管理）；完成 DINOv3 License 书面核验后再决定是否公开再分发 |
-| `dataset_weed_wheatweed_v1.zip` | MADA 赛题一平台数据（DJI 田间图像与标注，train 3142 + val 787）；再分发许可待平台/主办方书面确认 |
-| `dataset_pest_train_images_v1.part1/2.zip`、`dataset_pest_labels_splits_v1.zip` | MADA 赛题二平台数据（train 21634 图与标注；类别体系对应公开学术数据集 IP102）；再分发许可待平台/主办方书面确认 |
+| `weed_yolox_dinov3_small_best_ckpt.pth`、`weed_yolox_dinov3_base_best_ckpt.pth` | 基于 Meta DINOv3 lvd1689m 预训练权重微调，构成 DINOv3 License 意义下的衍生作品。**2026-08-31 书面核验完成**（官方协议原文存档 `licenses/DINOv3-License.md`）：协议 §2.a 授予使用、复制、分发、创作衍生作品之权利；§2.i 要求按协议条款分发并随附协议副本 | 按 **DINOv3 License** 分发（不适用项目 MIT）；随附协议副本；使用限制（贸易管制、禁止军事等终端用途）以协议原文为准 |
+| `dataset_weed_wheatweed_v1.zip` | MADA 赛题一平台免费公开数据集（DJI 田间图像与标注，train 3142 + val 787）；作者于 2026-08-31 确认可随本项目再分发 |
+| `dataset_pest_train_images_v1.part1/2.zip`、`dataset_pest_labels_splits_v1.zip` | MADA 赛题二平台免费公开数据集（train 21634 图与标注；类别体系对应公开学术数据集 IP102）；作者于 2026-08-31 确认可随本项目再分发 |
 
-代码树内仍不含任何权重、数据集、真实图片；**转公开前置条件**：DINOv3 License 书面核验 + 数据集再分发书面确认。本仓库不含任何 Token、Cookie、API Key 或个人凭证。
+代码树内仍不含任何权重、数据集、真实图片。本仓库不含任何 Token、Cookie、API Key 或个人凭证。

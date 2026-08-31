@@ -5,6 +5,8 @@
 
 推理、融合与规则算法沿用已通过真实 CLI / Web 验证的实现（封装层采用整体复制基线 + 增量包装，不重写已验证算法；模块溯源见各文件头注释与 `THIRD_PARTY_NOTICES.md`）。
 
+<p align="center"><img src="assets/banner.jpg" alt="WheatFieldAI banner" width="720"></p>
+
 **完整运行资产**：四套 YOLO11 系权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；两套 DINOv3 衍生权重作为本地运行资产单独管理（见 §7.2）。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 > **核心能力概览**：杂草 / 害虫双任务识别 · 高精度融合模式 / 快速单模型模式 · 检测框 / 类别统计 / 危害等级 / 防治方向建议 · 标注 JPG 与结构化 JSON 导出 · 字体与图标本地化，离线可用
@@ -30,7 +32,11 @@
 
 ## 3. 当前页面 UI
 
-当前页面采用 Bento 网格布局（珊瑚色浅底、编号卡片）：
+当前页面采用 Bento 网格布局（珊瑚色浅底、编号卡片）。以下为杂草检测（高精度融合模式）的真实运行全页截图：
+
+<p align="center"><img src="assets/demo_weed_fullpage.jpg" alt="杂草检测真实运行全页演示（71 个检测目标，置信度 0.801）" width="720"></p>
+
+页面各区域：
 
 - 顶部品牌栏（小麦田图标 + 站点标题）；行 1「01 · 工作台控制」（检测对象 / 推理模式 / 上传）+「02 · 运行状态」（模型就绪等状态点、模式信息条、原型声明、批量规则）；
 - 行 2「输入原图」+「标注结果」（含显示低置信候选框开关）；行 3「结果概览 KPI」+「按类别统计」+「危害等级」；
@@ -173,6 +179,8 @@ SHA256SUMS.txt                                    校验公开 Release 资产
 
 下载后按 `SHA256SUMS.txt` 校验；权重放入 `models/` 对应目录（或用环境变量指定路径）；害虫图片两卷解压到同一目录后与 labels/、splits/ 组合。
 
+数据集资产来自 MADA 平台免费公开数据集（杂草 WheatWeed；害虫训练集，类别体系对应公开学术数据集 IP102），经作者确认可随本项目再分发。
+
 ### 7.3 资产校验
 
 ```text
@@ -262,7 +270,7 @@ mAP50-95 = 0.52410
 - Ultralytics YOLO11 相关模型与实现受 Ultralytics 许可条款约束；本项目公开发布所采用的 YOLO11 资产按 AGPL-3.0 路径处理，具体边界见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 四套 YOLO11 系权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集为平台数据（再分发确认中）。两套 DINOv3 衍生权重作为本地运行资产单独管理，按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
+- 四套 YOLO11 系权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发。两套 DINOv3 衍生权重作为本地运行资产单独管理，按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 真实性声明
