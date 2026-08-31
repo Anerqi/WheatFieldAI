@@ -370,7 +370,7 @@ if uploaded_files:
             with st.container(border=True):
                 st.markdown(card_head("06 · 分类统计","按类别统计"),unsafe_allow_html=True)
                 if task_key=="pest" and result.get("class_counts"):
-                    st.dataframe([{"类别（拉丁学名）":k,"数量":v} for k,v in result["class_counts"].items()],use_container_width=True,hide_index=True)
+                    st.dataframe([{"类别（拉丁学名）":k,"数量":v} for k,v in result["class_counts"].items()],use_container_width=True,hide_index=True,height=280,column_config={"类别（拉丁学名）":st.column_config.TextColumn(width="medium"),"数量":st.column_config.NumberColumn(width="small")})
                     st.markdown(f'<div class="small" style="margin-top:6px">共 {len(result["class_counts"])} 类 · {result["num_detections"]} 目标（含全部置信度）。</div>',unsafe_allow_html=True)
                 else:
                     st.markdown(f'**Obonianghao（牛鞭草）** · {result["num_detections"]} 个目标',unsafe_allow_html=True)
@@ -406,7 +406,7 @@ if uploaded_files:
                             r.update({"x1":int(d["bbox_xyxy"][0]),"y1":int(d["bbox_xyxy"][1]),"x2":int(d["bbox_xyxy"][2]),"y2":int(d["bbox_xyxy"][3]),"宽":int(d["bbox_xyxy"][2]-d["bbox_xyxy"][0]),"高":int(d["bbox_xyxy"][3]-d["bbox_xyxy"][1])})
                         rows.append(r)
                     rows.sort(key=lambda r:(r["类别"],-float(r["置信度"])))
-                    st.dataframe(rows,use_container_width=True,hide_index=True)
+                    st.dataframe(rows,use_container_width=True,hide_index=True,height=260)
                 note=f"已隐藏 {hidden_n} 个置信度 < {DISPLAY_CONF_TH:.2f} 的行。" if hidden_n and not show_low else ""
                 st.markdown(f'<div class="small" style="margin-top:6px">显示 {len(shown)} / {len(dets)} 条。{note} 危害等级与 JSON 始终基于全部检测。</div>',unsafe_allow_html=True)
 
