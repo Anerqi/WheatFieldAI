@@ -172,6 +172,16 @@ button,[role="button"]{transition:border-color .16s ease-out,color .16s ease-out
 [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] [data-testid="stDownloadButton"]){justify-content:space-between}
 /* 统计表封顶，控制行3高度，避免长表格把整行撑太高 */
 [data-testid="stDataFrame"]{max-height:320px;overflow-y:auto}
+/* —— R12：按类别统计表改为 HTML 表（内容自适应高度，替代 GLIDE 画布的跨视口行高漂移） —— */
+.class-table{max-height:280px;overflow-y:auto;border:1px solid var(--hairline);border-radius:var(--radius)}
+.class-table table{width:100%;border-collapse:collapse;font-size:13px}
+.class-table th{position:sticky;top:0;background:#f0ebe2;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6b5d4f;text-align:left;padding:8px 12px;border-bottom:2px solid #d9c9a8;white-space:nowrap}
+.class-table th.num{text-align:right}
+.class-table th.num{text-align:right}
+.class-table td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--body)}
+.class-table tr:last-child td{border-bottom:none}
+.class-table td.num{font-family:var(--song);font-weight:600;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+
 @media(max-width:768px){.block-container{padding-left:12px;padding-right:12px}.workbench-bar{padding:14px 16px}.brand-title{font-size:14px}.brand-word{font-size:18px}.metric-strip{grid-template-columns:1fr}[data-testid="stVerticalBlockBorderWrapper"],.bento-panel{padding:14px}}
 @media(max-width:520px){.brand-word{font-size:17px}.brand-title{font-size:13px}.bar-row{gap:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
@@ -370,7 +380,8 @@ if uploaded_files:
             with st.container(border=True):
                 st.markdown(card_head("06 · 分类统计","按类别统计"),unsafe_allow_html=True)
                 if task_key=="pest" and result.get("class_counts"):
-                    st.dataframe([{"类别（拉丁学名）":k,"数量":v} for k,v in result["class_counts"].items()],use_container_width=True,hide_index=True,height=280,column_config={"类别（拉丁学名）":st.column_config.TextColumn(width="medium"),"数量":st.column_config.NumberColumn(width="small")})
+                    _rows="".join(f"<tr><td>{escape(k)}</td><td class='num'>{v}</td></tr>" for k,v in result["class_counts"].items())
+                    st.markdown(f'<div class="class-table"><table><thead><tr><th>类别（拉丁学名）</th><th class="num">数量</th></tr></thead><tbody>{_rows}</tbody></table></div>',unsafe_allow_html=True)
                     st.markdown(f'<div class="small" style="margin-top:6px">共 {len(result["class_counts"])} 类 · {result["num_detections"]} 目标（含全部置信度）。</div>',unsafe_allow_html=True)
                 else:
                     st.markdown(f'**Obonianghao（牛鞭草）** · {result["num_detections"]} 个目标',unsafe_allow_html=True)
