@@ -147,6 +147,26 @@ configs/classwise_ensemble_11m11l11s_960_refined_current.json
 
 不会生成或伪造任何权重。
 
+### 6.1 完整权重与数据集下载（Release 资产）
+
+六套权重与训练/验证数据集以 GitHub Release 资产形式提供（tag `assets-v1`），**不随代码树分发**，且**不适用项目 MIT**（各资产按其来源条款，见 Release 说明与 `THIRD_PARTY_NOTICES.md`）：
+
+```text
+weed_yolo11s_baseline_best.pt             18 MB   Ultralytics YOLO11（AGPL-3.0）
+weed_yolox_dinov3_small_best_ckpt.pth    288 MB   基于 Meta DINOv3 lvd1689m 微调（DINOv3 License，公开前待核验）
+weed_yolox_dinov3_base_best_ckpt.pth     541 MB   同上
+pest_yolo11m_best.pt                     115 MB   Ultralytics YOLO11（AGPL-3.0）
+pest_yolo11l_best.pt                     146 MB   Ultralytics YOLO11（AGPL-3.0）
+pest_yolo11s_best.pt                      18 MB   Ultralytics YOLO11（AGPL-3.0）
+dataset_weed_wheatweed_v1.zip           1.05 GB   杂草 WheatWeed train(3142)+val(787) 图与标注 + 配置
+dataset_pest_train_images_v1.part1.zip  ~1.0 GB   害虫训练图片（两卷，解压到同一目录）
+dataset_pest_train_images_v1.part2.zip  ~1.0 GB   害虫训练图片（两卷，解压到同一目录）
+dataset_pest_labels_splits_v1.zip         13 MB   害虫训练标注 + train/val 划分 + 数据集配置
+SHA256SUMS.txt                                    全部资产校验和
+```
+
+下载后按 `SHA256SUMS.txt` 校验；权重放入 `models/` 对应目录（或用环境变量指定路径）；害虫图片两卷解压到同一目录后与 labels/ 组合。各资产来源与许可边界详见 `THIRD_PARTY_NOTICES.md` 与 Release 说明。
+
 ## 7. 资产检查
 
 ```text

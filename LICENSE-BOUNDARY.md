@@ -14,6 +14,6 @@
 | 得意黑 Smiley Sans 字体（`static/SmileySans-Oblique.*`） | SIL OFL 1.1，见 `static/FONT-LICENSE.md` |
 | YOLOX-Dinov3 衍生模型结构（`src/model_config.py`） | 衍生重建自平台导出源码包（YOLOX/Megvii + DINOv3/Meta + 平台扩展，2026-08-30 实测核验），许可证待核验，不受 MIT 覆盖 |
 | 第三方 pip 依赖（Streamlit、Ultralytics、OpenCV、NumPy、PyYAML、Pillow、pandas、PyTorch 等） | 按各自许可，见 `THIRD_PARTY_NOTICES.md` |
-| 模型权重、数据集、真实测试图片、运行输出 | 不随本仓库分发，无本仓库授权 |
+| 模型权重与数据集 | 不随**代码树**分发；以 Release 资产（tag `assets-v1`）按各自条款提供（YOLO11 系权重 AGPL-3.0；DINOv3 衍生权重受 DINOv3 License 约束；数据集为平台数据，再分发待书面确认），均不适用项目 MIT |
 
 边界状态说明：本仓库**不声称**所有模型/数据集/衍生代码许可已完成核验；待核验项清单与责任人见 `THIRD_PARTY_NOTICES.md`。

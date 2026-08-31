@@ -27,10 +27,15 @@
 
 依赖许可以各官方仓库最新文本为准。待补充；责任人：用户/Executor；下一步：完成书面核验。
 
-## 3. 明确不随本仓库分发的资产
+## 3. 权重与数据集的分发方式
 
-- **六套模型权重**（`models/` 下任何 `.pt` / `.pth` 等）：用户自训练资产；其中杂草 YOLOX-Dinov3 权重基于 Meta DINOv3 lvd1689m 预训练权重微调（导出包实测含该预训练 checkpoint），再分发适用 DINOv3 License 与平台条款——待用户书面核验；请自行准备你有权使用的权重。
-- **数据集**：图片、标注、分割清单、压缩包一律不随仓库分发；`configs/dataset.yaml` 仅作类别名数据源。
-- **真实测试图片**：`test_images/` 下仅保留说明文档，图片请自行准备。
-- **真实运行输出与日志**：不随仓库分发。
-- 本仓库不含任何 Token、Cookie、API Key 或个人凭证。
+模型权重与数据集**不在代码树内**，以 GitHub Release 资产（tag `assets-v1`）按各自条款分发；均**不适用项目 MIT**：
+
+| 资产 | 来源与许可 |
+|---|---|
+| `weed_yolo11s_baseline_best.pt`、`pest_yolo11m/l/s_best.pt` | Ultralytics YOLO11 训练；按 AGPL-3.0 分发 |
+| `weed_yolox_dinov3_small/base_best_ckpt.pth` | 基于 Meta DINOv3 lvd1689m 预训练权重微调；受 DINOv3 License 约束（全文未随导出包）——**转公开前须完成书面核验** |
+| `dataset_weed_wheatweed_v1.zip` | MADA 赛题一平台数据（DJI 田间图像与标注，train 3142 + val 787）；再分发许可待平台/主办方书面确认 |
+| `dataset_pest_train_images_v1.part1/2.zip`、`dataset_pest_labels_splits_v1.zip` | MADA 赛题二平台数据（train 21634 图与标注；类别体系对应公开学术数据集 IP102）；再分发许可待平台/主办方书面确认 |
+
+代码树内仍不含任何权重、数据集、真实图片；**转公开前置条件**：DINOv3 License 书面核验 + 数据集再分发书面确认。本仓库不含任何 Token、Cookie、API Key 或个人凭证。
