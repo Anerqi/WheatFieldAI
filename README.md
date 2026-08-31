@@ -7,7 +7,7 @@
 
 <p align="center"><img src="assets/banner.jpg" alt="WheatFieldAI banner" width="720"></p>
 
-**完整运行资产**：四套 YOLO11 系权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；两套 DINOv3 衍生权重作为本地运行资产单独管理（见 §7.2）。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
+**完整运行资产**：六套模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 > **核心能力概览**：杂草 / 害虫双任务识别 · 高精度融合模式 / 快速单模型模式 · 检测框 / 类别统计 / 危害等级 / 防治方向建议 · 标注 JPG 与结构化 JSON 导出 · 字体与图标本地化，离线可用
 
@@ -157,14 +157,14 @@ WHEATWEED_PORT
 
 类别与融合配置（随仓库提供）：`configs/dataset.yaml`（害虫 32 类类别名唯一数据源）、`configs/classwise_ensemble_11m11l11s_960_refined_current.json`（refined classwise WBF 参数）。
 
-### 7.2 运行资产与公开下载
+### 7.2 完整运行资产下载（Release）
 
-四套 YOLO11 系权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；两套 DINOv3 衍生权重作为本地运行资产单独管理。所有资产按各自来源条款管理，不适用项目 MIT 许可证：
+六套模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供，全部不适用项目 MIT，按各自来源条款管理：
 
 ```text
 weed_yolo11s_baseline_best.pt             18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
-weed_yolox_dinov3_small_best_ckpt.pth    288 MB   本地运行资产，不随 Release
-weed_yolox_dinov3_base_best_ckpt.pth     541 MB   本地运行资产，不随 Release
+weed_yolox_dinov3_small_best_ckpt.pth    288 MB   基于 Meta DINOv3 lvd1689m 微调（按 DINOv3 License 分发）
+weed_yolox_dinov3_base_best_ckpt.pth     541 MB   同上
 pest_yolo11m_best.pt                     115 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
 pest_yolo11l_best.pt                     146 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
 pest_yolo11s_best.pt                      18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）

@@ -7,8 +7,8 @@
 | 组件 | 位置 | 来源 | 许可/权利状态 | 边界 |
 |---|---|---|---|---|
 | 得意黑 Smiley Sans 字体 | `static/SmileySans-Oblique.ttf.woff2`、`static/SmileySans-Oblique.otf` | atelierAnchor 开源字体项目（版权与许可信息读取自字体文件内嵌 name 表） | SIL Open Font License 1.1 | 按 OFL-1.1 分发；不受项目 MIT 覆盖；详见 `static/FONT-LICENSE.md` |
-| 小麦田图标 | `static/wheat-icon-128.png`、`static/wheat-icon-64.png` | 项目 UI 资源（任务 16）；作者于 2026-08-30 确认随仓库分发并按项目 MIT 授权 | 项目 MIT 范围（作者确认） | 图标创作方式与原始权利的书面来源记录：待补充；责任人：用户；下一步：补充来源记录；若来源权利状态变化，将从仓库移除 |
-| YOLOX-Dinov3 衍生模型结构 | `src/model_config.py` | 衍生重建自 MADA 平台导出源码包（2026-08-30 经用户提供的导出包实测核验，SHA-256 9c860f51…）：YOLOX 框架类（Megvii 版权头；上游项目社区公开信息为 Apache-2.0）+ 平台扩展（YOLOPAFPNDinoV3 / YOLOXHeadDinoV3）+ DINOv3 ConvNeXt（Meta 版权头，DINOv3 License Agreement） | **许可证待核验**（包内无 LICENSE/NOTICE 文件，实测确认） | **不受项目 MIT 覆盖**；保留于本仓库以便完整运行；再分发授权需用户依据平台使用条款与 DINOv3 License 确认 |
+| 小麦田图标 | `static/wheat-icon-128.png`、`static/wheat-icon-64.png` | 项目 UI 资源；作者于 2026-08-30 确认随仓库分发并按项目 MIT 授权 | 项目 MIT 范围（作者确认） | 若来源权利状态变化，将从仓库移除 |
+| YOLOX-Dinov3 衍生模型结构 | `src/model_config.py` | 衍生重建自 MADA 平台导出源码包（2026-08-30 经用户提供的导出包实测核验，SHA-256 9c860f51…）：YOLOX 框架类（Megvii 版权头；上游项目社区公开信息为 Apache-2.0）+ 平台扩展（YOLOPAFPNDinoV3 / YOLOXHeadDinoV3）+ DINOv3 ConvNeXt（Meta 版权头，DINOv3 License Agreement） | 来源许可证未完全确认（平台导出包未附 LICENSE/NOTICE 文件，实测确认；上游 YOLOX 框架为 Apache-2.0） | **不受项目 MIT 覆盖**；保留于本仓库以便完整运行；来源授权确认前的使用风险已由本声明显式披露 |
 | 推理适配层 | `src/yolox_inference.py` | 2026-08-30 核验：与导出包内全部候选来源表达式相似度 decode_outputs 0.0 / postprocess 0.133，letterbox/unletterbox/STRIDES 包内不存在 | 项目自研（核验确认） | 纳入项目 MIT 范围；算法遵循 YOLOX 解码定义，表达式为项目自写 |
 | WBF 实现 | `src/wbf.py`、`src/pest_wbf.py` | 项目实现，遵循 Solovyev, Wang, Gabruseva (2021) "Weighted Boxes Fusion" 论文算法定义 | 算法为学术方法；实现按项目代码处理（纳入 MIT） | 注明论文出处；若实现被确认复制自第三方库，将移出 MIT 范围并按原库许可标注 |
 
@@ -25,7 +25,7 @@
 | pandas | >=2.0 | BSD-3-Clause |
 | PyTorch / torchvision | 2.11.0+cu128 基准 | BSD-3-Clause（按官方渠道安装） |
 
-依赖许可以各官方仓库最新文本为准。待补充；责任人：用户/Executor；下一步：完成书面核验。
+依赖许可证以各项目官方许可证文本及当前锁定版本为准。
 
 ## 3. 权重与数据集的分发方式
 
