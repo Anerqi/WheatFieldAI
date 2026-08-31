@@ -1,7 +1,11 @@
 <!-- README.md -->
 # 小麦田间杂草与害虫智能识别及辅助决策系统
 
-本项目是已通过真实 CLI / Web 验证的「08_杂草害虫双任务Web系统」封装版。封装层采用整体复制基线 + 增量包装方式，不重写已验证的推理、融合与规则算法。
+小麦田间杂草（1 类）与害虫（32 类）双任务识别工作台：本地 Streamlit Web 应用，杂草侧 YOLO11s + YOLOX-Dinov3 Small/Base 异构 WBF 融合，害虫侧 YOLO11m/l/s 三模型 refined classwise WBF；输出检测框、类别统计、危害等级与防治建议（原型规则），支持标注 JPG 与结构化 JSON 导出。
+
+推理、融合与规则算法沿用已通过真实 CLI / Web 验证的实现（封装层采用整体复制基线 + 增量包装，不重写已验证算法；模块溯源见各文件头注释与 `THIRD_PARTY_NOTICES.md`）。
+
+**完整开源资产**：六套模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供——各资产按其来源条款授权（YOLO11 系权重 AGPL-3.0；DINOv3 衍生权重受 DINOv3 License 约束；数据集为平台数据，再分发确认中），**不适用项目 MIT**；下载、校验与放置方法见 §6.1，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 ## 1. 能力
 
@@ -47,10 +51,10 @@ WheatFieldAI/
 ├─ scripts/                   ← 验证脚本
 ├─ configs/                   ← 类别唯一真源与 classwise WBF 配置
 ├─ packaging/                 ← 启动器与检查脚本
-└─ test_images/README.md      ← 真实测试图片请自行放置（图片不随仓库分发）
+└─ test_images/README.md      ← 验收样例说明（样例图片自备；完整训练/验证数据集经 Release 提供）
 ```
 
-src/ 各模块沿用已验证的推理实现（溯源见各文件头注释与 THIRD_PARTY_NOTICES.md）；deployment_adapter.py 只提供封装接口，不实现新的推理算法。运行时生成的 models/、logs/、outputs/ 已被 .gitignore 排除，不随仓库分发。
+src/ 各模块沿用已验证的推理实现（溯源见各文件头注释与 THIRD_PARTY_NOTICES.md）；deployment_adapter.py 只提供封装接口，不实现新的推理算法。运行时生成的 models/、logs/、outputs/ 已被 .gitignore 排除，不随代码树分发（models/ 权重与训练/验证数据集经 Release 资产提供，见 6.1）。
 
 ## 3. 启动
 
@@ -127,7 +131,7 @@ python -m pip install -r requirements.txt
 
 ## 6. 模型资产
 
-必须自行放置六套真实权重：
+六套权重与训练/验证数据集通过 **GitHub Release 资产**提供（tag `assets-v1`，下载与校验见 6.1）；下载后放入以下路径（或用环境变量覆盖路径）：
 
 ```text
 models/weed/yolo11s/baseline_best.pt
@@ -273,7 +277,7 @@ test_images/pest/ 放赛题二 test_q2 真实害虫图片。
 
 不要使用静态截图作为模型真实性验收样本。
 
-图片与数据集本身不随本仓库分发，请使用你有权使用的真实图片。
+完整训练/验证数据集经 Release 资产提供（见 6.1）；`test_images/` 验收样例请自备你有权使用的真实图片。
 
 ## 13. 日志
 
@@ -461,8 +465,8 @@ logs
 - 第三方组件按各自许可处理，不受项目 MIT 自动覆盖：依赖包与 YOLOX-Dinov3 衍生模型结构（`src/model_config.py`，核验记录见该文件）等逐项说明见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 六套模型权重**不随仓库分发**：运行前请自行准备你有权使用的权重，放入 `models/` 或用环境变量指定路径。
-- 数据集与真实测试图片**不随仓库分发**：`configs/dataset.yaml` 仅作 32 类类别名数据源；`test_images/` 请放置你自行准备的真实图片。
+- 六套权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系权重 AGPL-3.0；DINOv3 衍生权重受 DINOv3 License 约束（转公开前须书面核验）；数据集为平台数据（再分发确认中）。下载与放置见 6.1。
+- 平台测试图片与真实运行输出不随仓库分发；`test_images/` 请放置你自备的验收样例，`configs/dataset.yaml` 仅作 32 类类别名数据源。
 - 真实运行需要你自行准备合规资产（权重、环境）；本仓库不生成、不伪造任何权重或检测结果。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
