@@ -174,13 +174,13 @@ button,[role="button"]{transition:border-color .16s ease-out,color .16s ease-out
 [data-testid="stDataFrame"]{max-height:320px;overflow-y:auto}
 
 /* —— R14：类别统计表收紧（table-layout:fixed + 固定数量列宽 + 去滚动容器，ChatGPT 联合排查结论） —— */
-.class-table{border:1px solid var(--hairline);border-radius:var(--radius);overflow:hidden}
+.class-table{max-height:420px;overflow-y:auto;border:1px solid var(--hairline);border-radius:var(--radius)}
 .class-table table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
-.class-table th{background:#f0ebe2;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.08em;color:#6b5d4f;text-align:left;padding:8px 12px;border-bottom:2px solid #d9c9a8;white-space:nowrap}
-.class-table th:first-child,.class-table td:first-child{width:auto}
+.class-table th{position:sticky;top:0;z-index:1;background:#f0ebe2;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.08em;color:#6b5d4f;text-align:left;padding:8px 12px;border-bottom:2px solid #d9c9a8;white-space:nowrap}
 .class-table th.num,.class-table td.num{width:72px;text-align:right}
 .class-table td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--body)}
-.class-table td.num{font-family:var(--sans);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.class-table td:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.class-table td.num{font-family:var(--sans);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .class-table tr:last-child td{border-bottom:none}
 
 
@@ -382,7 +382,7 @@ if uploaded_files:
             with st.container(border=True):
                 st.markdown(card_head("06 · 分类统计","按类别统计"),unsafe_allow_html=True)
                 if task_key=="pest" and result.get("class_counts"):
-                    _rows="".join(f"<tr><td>{escape(k)}</td><td class='num'>{v}</td></tr>" for k,v in result["class_counts"].items())
+                    _rows="".join(f'<tr><td title="{escape(k)}">{escape(k)}</td><td class="num">{v}</td></tr>' for k,v in result["class_counts"].items())
                     st.markdown(f'<div class="class-table"><table><thead><tr><th>类别（拉丁学名）</th><th class="num">数量</th></tr></thead><tbody>{_rows}</tbody></table></div>',unsafe_allow_html=True)
                     st.markdown(f'<div class="small" style="margin-top:6px">共 {len(result["class_counts"])} 类 · {result["num_detections"]} 目标（含全部置信度）。</div>',unsafe_allow_html=True)
                 else:
