@@ -270,7 +270,7 @@ mAP50-95 = 0.52410
 - Ultralytics YOLO11 相关模型与实现受 Ultralytics 许可条款约束；本项目公开发布所采用的 YOLO11 资产按 AGPL-3.0 路径处理，具体边界见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 四套 YOLO11 系权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发。两套 DINOv3 衍生权重作为本地运行资产单独管理，按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
+- 六套模型权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 真实性声明
