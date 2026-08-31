@@ -5,7 +5,7 @@
 
 推理、融合与规则算法沿用已通过真实 CLI / Web 验证的实现（封装层采用整体复制基线 + 增量包装，不重写已验证算法；模块溯源见各文件头注释与 `THIRD_PARTY_NOTICES.md`）。
 
-**完整运行资产**：六套模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；各资产按其来源条款分别管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
+**完整运行资产**：YOLO11 系模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供；DINOv3 衍生权重未纳入公开 Release（见 §7.2）。各资产按其来源条款分别管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 > **核心能力概览**：杂草 / 害虫双任务识别 · 高精度融合模式 / 快速单模型模式 · 检测框 / 类别统计 / 危害等级 / 防治方向建议 · 标注 JPG 与结构化 JSON 导出 · 字体与图标本地化，离线可用
 
@@ -67,7 +67,7 @@ src/ 各模块沿用已验证的推理实现（溯源见各文件头注释与 TH
 
 ## 5. 环境要求
 
-已验证基准：
+已验证环境基线：
 
 ```text
 Python 3.13.9
@@ -88,6 +88,8 @@ CUDA 版 PyTorch 单独安装：
 python -m pip install torch==2.11.0+cu128 torchvision==0.26.0+cu128 --index-url https://download.pytorch.org/whl/cu128
 python -m pip install -r requirements.txt
 ```
+
+以上为当前已验证环境基线，不代表这些依赖版本均为最低兼容版本。
 
 启动器和检查脚本不会自动安装依赖，也不会联网。
 
@@ -155,8 +157,6 @@ WHEATWEED_PORT
 
 ```text
 weed_yolo11s_baseline_best.pt             18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
-weed_yolox_dinov3_small_best_ckpt.pth    288 MB   基于 Meta DINOv3 lvd1689m 微调（见下方说明）
-weed_yolox_dinov3_base_best_ckpt.pth     541 MB   同上
 pest_yolo11m_best.pt                     115 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
 pest_yolo11l_best.pt                     146 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
 pest_yolo11s_best.pt                      18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
@@ -167,7 +167,7 @@ dataset_pest_labels_splits_v1.zip         13 MB   害虫训练标注 + train/val
 SHA256SUMS.txt                                    全部资产校验和
 ```
 
-**DINOv3 衍生权重说明**：`weed_yolox_dinov3_small/base_best_ckpt.pth` 基于 Meta DINOv3 lvd1689m 预训练权重微调，受 DINOv3 License 约束。当前仅作为运行资产随本仓库分发管理，公开再分发前需完成 DINOv3 License 书面核验（详见 `THIRD_PARTY_NOTICES.md`）。
+**DINOv3 衍生权重**：`weed_yolox_dinov3_small_best_ckpt.pth` 与 `weed_yolox_dinov3_base_best_ckpt.pth` 基于 Meta DINOv3 lvd1689m 预训练权重微调，受 DINOv3 License 约束。目前仅作为本地运行资产管理，**未纳入公开 Release**；完成许可核验后再决定是否公开再分发（详见 `THIRD_PARTY_NOTICES.md`）。
 
 下载后按 `SHA256SUMS.txt` 校验；权重放入 `models/` 对应目录（或用环境变量指定路径）；害虫图片两卷解压到同一目录后与 labels/、splits/ 组合。
 
@@ -260,7 +260,8 @@ mAP50-95 = 0.52410
 - Ultralytics YOLO11 相关模型与实现按 Ultralytics 相应许可框架提供；本项目当前按 AGPL-3.0 路径进行公开发布，具体边界见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 六套权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系权重按 AGPL-3.0 路径处理；DINOv3 衍生权重受 DINOv3 License 约束（公开再分发前需完成书面核验）；数据集为平台数据（再分发确认中）。下载与放置见 §7.2。
+- 四套 YOLO11 系权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系权重按 AGPL-3.0 路径处理；数据集为平台数据（再分发确认中）。下载与放置见 §7.2。
+- DINOv3 衍生权重（`weed_yolox_dinov3_small/base_best_ckpt.pth`，即 Small 与 Base 两个 .pth 文件）目前仅作为本地运行资产管理，**未纳入公开 Release**；完成 DINOv3 License 核验后再决定是否公开再分发。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 真实性声明
