@@ -21,6 +21,7 @@ models.py
 """
 
 import os
+import threading
 
 import torch
 
@@ -38,11 +39,19 @@ class DualModelManager:
         self.cfg = cfg
         self.device = cfg.get("device", "cpu")
         self._active_task = None
+        # R17：@st.cache_resource 单例被所有会话共享；RLock 串行化任务切换/释放/推理，
+        # 防止会话 A 切换任务时卸载会话 B 正在使用的模型（RLock 允许嵌套调用）
+        self._lock = threading.RLock()
         # 杂草模型
         self._yolo11 = None
         self._yolox = {}  # size -> model
         # 害虫模型
         self._pest = PestModelManager(cfg.get("pest", {}), self.device)
+
+    @property
+    def lock(self):
+        """共享推理锁：app 层在调用推理函数期间持有，避免与任务切换/释放竞态。"""
+        return self._lock
 
     # ------------------------------------------------------------------
     # 任务切换
@@ -52,10 +61,11 @@ class DualModelManager:
 
         策略记录：12GB 显存不足以同时驻留两套任务模型，切换即卸载 + empty_cache。
         """
-        if task == self._active_task:
-            return
-        self.free_gpu()
-        self._active_task = task
+        with self._lock:
+            if task == self._active_task:
+                return
+            self.free_gpu()
+            self._active_task = task
 
     # ------------------------------------------------------------------
     # 权重路径存在性检查
@@ -112,11 +122,12 @@ class DualModelManager:
     # ------------------------------------------------------------------
     def free_gpu(self):
         """释放全部缓存模型（任务切换/显存不足降级时调用）。"""
-        self._yolo11 = None
-        self._yolox = {}
-        self._pest.release()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        with self._lock:
+            self._yolo11 = None
+            self._yolox = {}
+            self._pest.release()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
     def device_str(self):
         return self.device

@@ -11,6 +11,7 @@
 的「一个业务一张卡」方式接入；不提供未实现功能的假开关。
 """
 import base64
+import hashlib
 import json
 import os
 import re
@@ -157,19 +158,20 @@ button,[role="button"]{transition:border-color .16s ease-out,color .16s ease-out
 /* 长文本 / 长文件名截断与换行，避免窄屏撑破 */
 .file-name,.info-note,.mode-note,.error-box{overflow-wrap:anywhere}
 [data-testid="stDataFrame"]{overflow-x:auto}
-/* —— 任务16·第二轮：卡片等高后的内部空间消化（边框对齐修复） —— */
-/* 右栏状态卡：多余空间在所有内容块之间均分（接近自然间距）；空状态卡拉伸填充 */
-[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .status-row){justify-content:space-between}
+/* —— 任务16·第二轮：卡片等高后的内部空间消化（边框对齐修复）；R17 改顶部对齐 —— */
+/* R17：短卡片被超高同行卡（如 14 类全量统计表）拉伸时，space-between 会把标题与内容块撕到
+   顶/底两端形成大面积空白；统一改 flex-start 顶部紧贴，余量留在卡片底部 */
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .status-row){justify-content:flex-start}
 [data-testid="stElementContainer"]:has([data-testid="stMarkdownContainer"] > .empty-card){flex:1;display:flex;flex-direction:column}
 /* 图像帧在卡内拉伸，吸收输入/标注卡高度差（图像 object-fit:contain 居中，不裁切） */
 [data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"] > div > [data-testid="stMarkdownContainer"] > .result-frame){flex:1;display:flex;flex-direction:column}
 [data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"] > div > [data-testid="stMarkdownContainer"] > .result-frame) [data-testid="stMarkdown"],
 [data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"] > div > [data-testid="stMarkdownContainer"] > .result-frame) [data-testid="stMarkdown"] > div,
 [data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"] > div > [data-testid="stMarkdownContainer"] > .result-frame) [data-testid="stMarkdownContainer"]{flex:1;display:flex;flex-direction:column}
-/* 短卡片（摘要/危害/导出）内容撑开，避免底部大片空白 */
-[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .metric-strip){justify-content:space-between}
-[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .hazard){justify-content:space-between}
-[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] [data-testid="stDownloadButton"]){justify-content:space-between}
+/* 短卡片（摘要/危害/导出）内容顶部对齐，避免被超高同行卡拉伸后撕裂（R17） */
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .metric-strip){justify-content:flex-start}
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] .hazard){justify-content:flex-start}
+[data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] [data-testid="stDownloadButton"]){justify-content:flex-start}
 /* 统计表封顶，控制行3高度，避免长表格把整行撑太高 */
 [data-testid="stDataFrame"]{max-height:320px;overflow-y:auto}
 
@@ -237,6 +239,9 @@ def image_frame(img_bgr,alt):
 
 # ================= 行1：配置盒(4) + 系统状态盒(8) =================
 cfg=load_config()
+# R17：mode_control 默认值改由 session_state 初始化（组件不再传 default，消除
+# default 与 Session State API 并存的告警；OOM 降级路径的显式赋值语义不变）
+st.session_state.setdefault("mode_control","高精度融合")
 if st.session_state.get("force_fast_mode"):
     st.session_state["mode_control"]="快速单模型"
     st.session_state["force_fast_mode"]=False
@@ -249,7 +254,7 @@ with col_c:
         st.markdown(card_head("01 · 工作台控制","检测任务"),unsafe_allow_html=True)
         task=st.segmented_control("检测对象",["杂草检测","害虫检测"],default="杂草检测",key="task_control",help="请选择检测对象；系统不会自动猜测图片属于哪个任务。")
         task_key="weed" if task=="杂草检测" else "pest"
-        mode=st.segmented_control("推理模式",["高精度融合","快速单模型"],default="高精度融合",key="mode_control",help="高精度融合使用任务既定融合路线；快速单模型用于快速复核或显存不足场景。")
+        mode=st.segmented_control("推理模式",["高精度融合","快速单模型"],key="mode_control",help="高精度融合使用任务既定融合路线；快速单模型用于快速复核或显存不足场景。")
         mode_key="fusion" if mode=="高精度融合" else ("yolo11" if task_key=="weed" else "fast")
         uploaded_files=st.file_uploader("上传田间图片",type=["jpg","jpeg","png"],accept_multiple_files=True,help="支持 JPG/JPEG/PNG；单张不超过 20 MB；单批最多 10 张。")
         st.markdown('<div class="helper">JPG / JPEG / PNG · 单张 ≤20MB · 单批 ≤10张</div>',unsafe_allow_html=True)
@@ -318,21 +323,28 @@ if uploaded_files:
         status_line=st.empty()
         status_line.markdown(f'<div class="file-status running" role="status" aria-live="polite"><span class="dot loading"></span><span>正在推理…</span></div>',unsafe_allow_html=True)
 
-        with st.spinner("正在推理…"):
-            result=None;error_info=None;oom_occurred=False
-            try:
-                if task_key=="weed":
-                    result=infer_weed_single_image(img_bgr,cfg,manager,mode=mode_key)
-                else:
-                    result=infer_pest_single_image(img_bgr,cfg,manager._pest,mode=mode_key)
-            except Exception as exc:
-                if is_oom_error(exc):
-                    manager.free_gpu()
-                    st.session_state["last_oom"]=True
-                    oom_occurred=True
-                    error_info="GPU 显存不足（CUDA out of memory）。已释放模型缓存。请关闭其他占用显存的程序，或切换到「快速单模型」模式。"
-                else:
-                    error_info=f"{type(exc).__name__}: {exc}"
+        # R17：推理结果缓存——Streamlit 任何组件交互（勾选/切换视图/下载）都会整脚本重跑，
+        # 以 任务|模式|文件内容哈希 为键缓存成功结果，渲染优先读缓存，避免重复推理
+        results_cache=st.session_state.setdefault("results_cache",{})
+        file_hash=hashlib.sha256(up.getvalue()).hexdigest()[:20]
+        cache_key=f"{task_key}|{mode_key}|{file_hash}"
+        result=results_cache.get(cache_key);error_info=None;oom_occurred=False
+        if result is None:
+            with st.spinner("正在推理…"):
+                try:
+                    with manager.lock:  # R17：串行化共享单例上的推理，防止其他会话切换任务时卸载本会话正在使用的模型
+                        if task_key=="weed":
+                            result=infer_weed_single_image(img_bgr,cfg,manager,mode=mode_key)
+                        else:
+                            result=infer_pest_single_image(img_bgr,cfg,manager._pest,mode=mode_key)
+                except Exception as exc:
+                    if is_oom_error(exc):
+                        manager.free_gpu()
+                        st.session_state["last_oom"]=True
+                        oom_occurred=True
+                        error_info="GPU 显存不足（CUDA out of memory）。已释放模型缓存。请关闭其他占用显存的程序，或切换到「快速单模型」模式。"
+                    else:
+                        error_info=f"{type(exc).__name__}: {exc}"
 
         if error_info:
             status_line.markdown(f'<div class="file-status error" role="status" aria-live="polite"><span class="dot danger"></span><span>推理失败</span></div>',unsafe_allow_html=True)
@@ -345,6 +357,10 @@ if uploaded_files:
                     st.rerun()
             continue
 
+        # 仅缓存成功结果（失败不缓存，OOM 重试仍会真实重跑）；FIFO 上限 12 条防内存膨胀
+        results_cache[cache_key]=result
+        while len(results_cache)>12:
+            results_cache.pop(next(iter(results_cache)))
         st.session_state["last_oom"]=False
         group.empty();status_line.empty()
 
@@ -389,7 +405,7 @@ if uploaded_files:
                     st.markdown(f'**Obonianghao（牛鞭草）** · {result["num_detections"]} 个目标',unsafe_allow_html=True)
         with c_h:
             with st.container(border=True):
-                hazard=result["hazard"];level=hazard["level"];label=hazard["label"];hazard_cls={"轻":"light","中":"medium","重":"heavy"}[level]
+                hazard=result["hazard"];level=hazard["level"];label=hazard["label"];hazard_cls={"轻":"light","中":"medium","重":"heavy"}.get(level,"light")
                 glyph=hazard_semantic(level,label)
                 pest_detail=f'，检出类别 {result.get("major_class_count",0)} 类' if task_key=="pest" else ""
                 reminder='<div class="hazard-reminder">需要人工复核，请结合田间情况判断。</div>' if level=="重" else ""
