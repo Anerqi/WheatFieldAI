@@ -172,15 +172,17 @@ button,[role="button"]{transition:border-color .16s ease-out,color .16s ease-out
 [data-testid="stVerticalBlock"]:has(> [data-testid="stElementContainer"] [data-testid="stDownloadButton"]){justify-content:space-between}
 /* 统计表封顶，控制行3高度，避免长表格把整行撑太高 */
 [data-testid="stDataFrame"]{max-height:320px;overflow-y:auto}
-/* —— R12：按类别统计表改为 HTML 表（内容自适应高度，替代 GLIDE 画布的跨视口行高漂移） —— */
-.class-table{max-height:280px;overflow-y:auto;border:1px solid var(--hairline);border-radius:var(--radius)}
-.class-table table{width:100%;border-collapse:collapse;font-size:13px}
-.class-table th{position:sticky;top:0;background:#f0ebe2;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6b5d4f;text-align:left;padding:8px 12px;border-bottom:2px solid #d9c9a8;white-space:nowrap}
-.class-table th.num{text-align:right}
-.class-table th.num{text-align:right}
+
+/* —— R14：类别统计表收紧（table-layout:fixed + 固定数量列宽 + 去滚动容器，ChatGPT 联合排查结论） —— */
+.class-table{border:1px solid var(--hairline);border-radius:var(--radius);overflow:hidden}
+.class-table table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
+.class-table th{background:#f0ebe2;font-family:var(--sans);font-style:normal;font-size:11px;font-weight:600;letter-spacing:.08em;color:#6b5d4f;text-align:left;padding:8px 12px;border-bottom:2px solid #d9c9a8;white-space:nowrap}
+.class-table th:first-child,.class-table td:first-child{width:auto}
+.class-table th.num,.class-table td.num{width:72px;text-align:right}
 .class-table td{padding:7px 12px;border-bottom:1px solid var(--hairline);color:var(--body)}
+.class-table td.num{font-family:var(--sans);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
 .class-table tr:last-child td{border-bottom:none}
-.class-table td.num{font-family:var(--song);font-weight:600;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+
 
 @media(max-width:768px){.block-container{padding-left:12px;padding-right:12px}.workbench-bar{padding:14px 16px}.brand-title{font-size:14px}.brand-word{font-size:18px}.metric-strip{grid-template-columns:1fr}[data-testid="stVerticalBlockBorderWrapper"],.bento-panel{padding:14px}}
 @media(max-width:520px){.brand-word{font-size:17px}.brand-title{font-size:13px}.bar-row{gap:8px}}
