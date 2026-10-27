@@ -48,7 +48,7 @@
 - 浏览器标签页图标与品牌栏图标使用小麦田插画（`static/wheat-icon-128.png` / `-64.png`）；
 - 字体与图标由 Streamlit 静态服务提供（`.streamlit/config.toml` 中 `enableStaticServing = true`）；
 - 上传控件文案与服务端限制一致（`maxUploadSize = 20`，单张 ≤20 MB）；
-- 无结果时显示带编号三步引导的空状态卡；展示层低置信过滤（< 0.10）仅影响标注图与明细表默认显示，危害等级 / 类别统计 / JSON 始终基于全部检测结果；
+- 无结果时显示带编号三步引导的空状态卡；推理阈值沿用评测口径（0.001 / 0.01），但检测数量、类别统计、危害等级与 JSON `detections` 只计入置信度 ≥ `decision_conf`（`config.yaml`，默认 0.25）的检测，低于该值的候选框单独放在 `low_conf_candidates`，页面可勾选叠加显示；
 - 危害等级与防治建议仍为原型规则，需农学专家校准，不构成正式农业处方。
 
 ## 4. 项目结构
@@ -207,6 +207,13 @@ Web 下载入口（`app.py`）适合交互操作；CLI / 批处理入口（`src/
 `note` 字段为原型声明，必须保留。
 
 ## 10. 运行验证
+
+不依赖权重的单元 / 回归测试（GitHub Actions 自动运行）：
+
+```text
+python -B -m unittest discover -s tests -v
+```
+
 
 准备真实杂草图和真实害虫图后：
 

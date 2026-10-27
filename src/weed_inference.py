@@ -27,6 +27,7 @@ from yolox_inference import (
 from wbf import wbf_fuse_boxes
 from hazard import compute_hazard_level
 from advice import get_advice
+from decision import get_decision_conf, split_by_conf, confidence_stats
 
 
 def run_yolo11_single(model, img_bgr, device, conf, iou, img_size):
@@ -137,10 +138,15 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         })
     detections.sort(key=lambda d: d["confidence"], reverse=True)
 
-    confs = np.array([d["confidence"] for d in detections], dtype=float) if detections else np.array([])
+    # ---- 业务口径：仅 >= decision_conf 的检测参与计数与危害等级 ----
+    decision_conf = get_decision_conf(weed_cfg)
+    decided, candidates = split_by_conf(detections, decision_conf)
+    mean_conf, _ = confidence_stats(decided)
+    _, max_conf = confidence_stats(detections)  # 最高置信度反映模型原始输出
 
     # ---- 危害等级与防治建议 ----
-    hazard = compute_hazard_level(len(detections), w, h, cfg["hazard"], task="weed")
+    hazard = compute_hazard_level(len(decided), w, h, cfg["hazard"], task="weed")
+    hazard["decision_conf"] = decision_conf
     advice = get_advice(hazard["level"], cfg["advice"], task="weed", level_str=hazard["label"])
 
     return {
@@ -155,10 +161,13 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         "per_model_time_ms": per_model_times,
         "width": int(w),
         "height": int(h),
-        "num_detections": len(detections),
-        "mean_confidence": round(float(confs.mean()), 4) if len(confs) else None,
-        "max_confidence": round(float(confs.max()), 4) if len(confs) else None,
-        "detections": detections,
+        "num_detections": len(decided),
+        "num_candidates_total": len(detections),
+        "decision_conf": decision_conf,
+        "mean_confidence": mean_conf,
+        "max_confidence": max_conf,
+        "detections": decided,
+        "low_conf_candidates": candidates,
         "hazard": hazard,
         "advice": advice,
         "wbf_params": wbf_params,
