@@ -17,6 +17,7 @@ from pest_models import PestModelManager, PEST_NUM_CLASSES
 from pest_wbf import load_class_configs, classwise_wbf
 from hazard import compute_hazard_level
 from advice import get_advice
+from decision import get_decision_conf, split_by_conf, confidence_stats, class_counts as count_by_class
 
 
 def run_yolo_detections(model, img_bgr, device, conf, iou, img_size):
@@ -117,25 +118,21 @@ def infer_pest_single_image(img_bgr, cfg, pest_manager, mode="fusion"):
     # 按置信度降序排序
     detections.sort(key=lambda d: d["confidence"], reverse=True)
 
-    # ---- 统计 ----
-    confs = np.array([d["confidence"] for d in detections], dtype=float) if detections else np.array([])
-    # 主要类别数（检出类别去重）
-    major_class_ids = set(d["class_id"] for d in detections) if detections else set()
-    major_class_count = len(major_class_ids)
+    # ---- 业务口径：仅 >= decision_conf 的检测参与计数、类别统计与危害等级 ----
+    decision_conf = get_decision_conf(pest_cfg)
+    decided, candidates = split_by_conf(detections, decision_conf)
+    mean_conf, _ = confidence_stats(decided)
+    _, max_conf = confidence_stats(detections)  # 最高置信度反映模型原始输出
+    major_class_count = len(set(d["class_id"] for d in decided))
 
     # ---- 危害等级与防治建议 ----
-    hazard = compute_hazard_level(len(detections), w, h, cfg["hazard"], task="pest",
+    hazard = compute_hazard_level(len(decided), w, h, cfg["hazard"], task="pest",
                                   major_class_count=major_class_count)
+    hazard["decision_conf"] = decision_conf
     advice = get_advice(hazard["level"], cfg["advice"], task="pest", level_str=hazard["label"])
 
-    # ---- 每类检测数量统计 ----
-    class_counts = {}
-    if detections:
-        for d in detections:
-            cn = d["category_name"]
-            class_counts[cn] = class_counts.get(cn, 0) + 1
-        # 按数量降序排列
-        class_counts = dict(sorted(class_counts.items(), key=lambda x: -x[1]))
+    # ---- 每类检测数量统计（业务口径）----
+    class_counts = count_by_class(decided)
 
     return {
         "status": "ok",
@@ -149,10 +146,13 @@ def infer_pest_single_image(img_bgr, cfg, pest_manager, mode="fusion"):
         "per_model_time_ms": per_model_times,
         "width": int(w),
         "height": int(h),
-        "num_detections": len(detections),
-        "mean_confidence": round(float(confs.mean()), 4) if len(confs) else None,
-        "max_confidence": round(float(confs.max()), 4) if len(confs) else None,
-        "detections": detections,
+        "num_detections": len(decided),
+        "num_candidates_total": len(detections),
+        "decision_conf": decision_conf,
+        "mean_confidence": mean_conf,
+        "max_confidence": max_conf,
+        "detections": decided,
+        "low_conf_candidates": candidates,
         "class_counts": class_counts,
         "major_class_count": major_class_count,
         "hazard": hazard,

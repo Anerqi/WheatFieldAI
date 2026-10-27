@@ -6,7 +6,7 @@
 行4 检测明细(12,可折叠)；行5 防治建议(6)+导出(6)；行6 推理参数(12,可折叠)。
 卡片=单一业务职责；全局统一 gap=16px / 卡片内边距 16px；
 视觉语言采用 Claude 设计语言（设计规范文档未随本仓库分发）：暖奶油画布 #faf9f5 + 珊瑚 #cc785c 系 + 浅色附录卡 + 衬线标题；品牌水印「Anerqi」纯字标（无图形标志）；卡片不用彩色侧边条，行内卡片等高对齐。
-展示层低置信过滤仅影响标注图与明细表默认显示；危害等级/类别统计/JSON 始终基于全部检测结果。
+业务口径：仅置信度 ≥ decision_conf（config.yaml）的检测参与计数/类别统计/危害等级/JSON 主列表；低于该值的候选框单独保留，可在页面勾选查看。
 模块化说明：各卡片为独立渲染函数，未来模块（摄像头流/批量推理/历史记录/报告导出）按同样
 的「一个业务一张卡」方式接入；不提供未实现功能的假开关。
 """
@@ -45,7 +45,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-DISPLAY_CONF_TH = 0.10  # 展示层低置信阈值（仅显示过滤；业务口径不变）
 
 st.markdown(r"""
 <style>
@@ -377,13 +376,12 @@ if uploaded_files:
                 with hd:
                     st.markdown(card_head("04 · 视觉分析","标注结果",render_status_item("ok","检测完成")),unsafe_allow_html=True)
                 with cc:
-                    show_low_img=st.checkbox("显示低置信候选框",value=False,key=f"lowconf_{task_key}_{idx}",help=f"默认仅显示置信度 ≥ {DISPLAY_CONF_TH:.2f} 的检测框；危害等级与 JSON 始终基于全部检测结果。")
-                dets=result["detections"]
-                hidden=[d for d in dets if d["confidence"]<DISPLAY_CONF_TH]
-                shown=[d for d in dets if d["confidence"]>=DISPLAY_CONF_TH] if not show_low_img else dets
+                    show_low_img=st.checkbox("显示低置信候选框",value=False,key=f"lowconf_{task_key}_{idx}",help=f"默认仅显示置信度 ≥ {result['decision_conf']:.2f} 的检测框（与危害等级口径一致）；勾选后叠加显示低置信候选框。")
+                dets=result["detections"];hidden=result.get("low_conf_candidates",[])
+                shown=dets if not show_low_img else dets+hidden
                 st.markdown(image_frame(draw_annotations(img_bgr,shown),f"{fname} 标注图"),unsafe_allow_html=True)
                 if hidden and not show_low_img:
-                    st.markdown(f'<div class="result-meta" style="margin-top:8px">已隐藏 {len(hidden)} 个置信度 &lt; {DISPLAY_CONF_TH:.2f} 的低置信候选框；危害等级与 JSON 仍基于全部 {len(dets)} 个检测。</div>',unsafe_allow_html=True)
+                    st.markdown(f'<div class="result-meta" style="margin-top:8px">已隐藏 {len(hidden)} 个置信度 &lt; {result["decision_conf"]:.2f} 的低置信候选框；危害等级与统计基于其余 {len(dets)} 个检测。</div>',unsafe_allow_html=True)
 
         # ---- 行3：摘要(4) + 类别统计(4) + 危害(4) ----
         c_k,c_st,c_h=st.columns([4,4,4],gap="medium")
@@ -400,7 +398,7 @@ if uploaded_files:
                 if task_key=="pest" and result.get("class_counts"):
                     _rows="".join(f'<tr><td title="{escape(k)}">{escape(k)}</td><td class="num">{v}</td></tr>' for k,v in result["class_counts"].items())
                     st.markdown(f'<div class="class-table"><table><thead><tr><th>类别（拉丁学名）</th><th class="num">数量</th></tr></thead><tbody>{_rows}</tbody></table></div>',unsafe_allow_html=True)
-                    st.markdown(f'<div class="small" style="margin-top:6px">共 {len(result["class_counts"])} 类 · {result["num_detections"]} 目标（含全部置信度）。</div>',unsafe_allow_html=True)
+                    st.markdown(f'<div class="small" style="margin-top:6px">共 {len(result["class_counts"])} 类 · {result["num_detections"]} 目标（置信度 ≥ {result["decision_conf"]:.2f}）。</div>',unsafe_allow_html=True)
                 else:
                     st.markdown(f'**Obonianghao（牛鞭草）** · {result["num_detections"]} 个目标',unsafe_allow_html=True)
         with c_h:
@@ -415,14 +413,14 @@ if uploaded_files:
         # ---- 行4：检测明细(12,可折叠) ----
         with st.expander("检测框明细（科研）",expanded=False):
             c1,c2,c3=st.columns([1,1,1],gap="small")
-            show_low=c1.checkbox("显示低置信行",value=False,key=f"tbl_low_{idx}",help=f"默认仅显示置信度 ≥ {DISPLAY_CONF_TH:.2f} 的行。")
+            show_low=c1.checkbox("显示低置信行",value=False,key=f"tbl_low_{idx}",help=f"默认仅显示置信度 ≥ {result['decision_conf']:.2f} 的行。")
             show_xy=c2.checkbox("显示坐标列",value=False,key=f"tbl_xy_{idx}",help="展开 x1/y1/x2/y2/宽/高 列。")
             view=c3.selectbox("视图",["表格","键值卡片"],key=f"tbl_view_{idx}",label_visibility="collapsed")
-            dets=result["detections"]
+            dets=result["detections"]+result.get("low_conf_candidates",[])
             if not dets:
                 st.markdown("未检出任何目标。")
             else:
-                shown=[d for d in dets if show_low or d["confidence"]>=DISPLAY_CONF_TH]
+                shown=[d for d in dets if show_low or d["confidence"]>=result["decision_conf"]]
                 hidden_n=len(dets)-len(shown)
                 if view=="键值卡片":
                     rows="".join(f'<div class="kv-card"><span class="kv-conf">#{i+1}</span> · {escape(d["category_name"] if task_key=="pest" else "Obonianghao（牛鞭草）")} · 置信度 <span class="kv-conf">{d["confidence"]:.4f}</span>'+(f' · ({int(d["bbox_xyxy"][0])},{int(d["bbox_xyxy"][1])}) → ({int(d["bbox_xyxy"][2])},{int(d["bbox_xyxy"][3])})' if show_xy else '')+'</div>' for i,d in enumerate(shown))
@@ -436,8 +434,8 @@ if uploaded_files:
                         rows.append(r)
                     rows.sort(key=lambda r:(r["类别"],-float(r["置信度"])))
                     st.dataframe(rows,use_container_width=True,hide_index=True,height=260)
-                note=f"已隐藏 {hidden_n} 个置信度 < {DISPLAY_CONF_TH:.2f} 的行。" if hidden_n and not show_low else ""
-                st.markdown(f'<div class="small" style="margin-top:6px">显示 {len(shown)} / {len(dets)} 条。{note} 危害等级与 JSON 始终基于全部检测。</div>',unsafe_allow_html=True)
+                note=f"已隐藏 {hidden_n} 个置信度 < {result['decision_conf']:.2f} 的行。" if hidden_n and not show_low else ""
+                st.markdown(f'<div class="small" style="margin-top:6px">显示 {len(shown)} / {len(dets)} 条。{note} 危害等级与统计仅基于置信度 ≥ {result["decision_conf"]:.2f} 的检测。</div>',unsafe_allow_html=True)
 
         # ---- 行5：防治建议(6) + 导出(6) ----
         c_a,c_e=st.columns([6,6],gap="medium")
@@ -451,9 +449,9 @@ if uploaded_files:
                 st.markdown(card_head("10 · 结果输出","结果文件"),unsafe_allow_html=True)
                 annotated_bytes=encode_image_to_bytes(draw_annotations(img_bgr,result["detections"]),".jpg")
                 stem=os.path.splitext(fname)[0]
-                st.download_button(f"下载 {fname} 标注图 JPG",data=annotated_bytes,file_name=f"{stem}_annotated.jpg",mime="image/jpeg",key=f"dl_img_{task_key}_{idx}",help="下载当前文件的带标注 JPG 图像（含全部检测框，不受显示过滤影响）")
-                json_payload={"filename":fname,"generated_at":time.strftime("%Y-%m-%d %H:%M:%S"),"task":task_label(task_key),"mode":result["mode_display"],"models_used":result["models_used"],"inference_time_ms":result["inference_time_ms"],"image_size":{"width":result["width"],"height":result["height"]},"num_detections":result["num_detections"],"mean_confidence":result["mean_confidence"],"max_confidence":result["max_confidence"],"detections":result["detections"],"class_counts":result.get("class_counts",{}),"hazard":result["hazard"],"advice":result["advice"],"wbf_params":result["wbf_params"],"class_mapping":result["class_mapping"],"device":result["device"],"note":"本 JSON 为原型系统输出，危害等级与防治建议需农学专家审核。"}
-                st.download_button(f"下载 {fname} 检测结果 JSON",data=json.dumps(json_payload,ensure_ascii=False,indent=2),file_name=f"{stem}_result.json",mime="application/json",key=f"dl_json_{task_key}_{idx}",help="下载当前文件的结构化检测结果 JSON（含全部检测，不受显示过滤影响）")
+                st.download_button(f"下载 {fname} 标注图 JPG",data=annotated_bytes,file_name=f"{stem}_annotated.jpg",mime="image/jpeg",key=f"dl_img_{task_key}_{idx}",help="下载当前文件的带标注 JPG 图像（含置信度 ≥ 业务阈值的检测框）")
+                json_payload={"filename":fname,"generated_at":time.strftime("%Y-%m-%d %H:%M:%S"),"task":task_label(task_key),"mode":result["mode_display"],"models_used":result["models_used"],"inference_time_ms":result["inference_time_ms"],"image_size":{"width":result["width"],"height":result["height"]},"num_detections":result["num_detections"],"mean_confidence":result["mean_confidence"],"max_confidence":result["max_confidence"],"decision_conf":result["decision_conf"],"num_candidates_total":result["num_candidates_total"],"detections":result["detections"],"low_conf_candidates":result.get("low_conf_candidates",[]),"class_counts":result.get("class_counts",{}),"hazard":result["hazard"],"advice":result["advice"],"wbf_params":result["wbf_params"],"class_mapping":result["class_mapping"],"device":result["device"],"note":"本 JSON 为原型系统输出，危害等级与防治建议需农学专家审核。"}
+                st.download_button(f"下载 {fname} 检测结果 JSON",data=json.dumps(json_payload,ensure_ascii=False,indent=2),file_name=f"{stem}_result.json",mime="application/json",key=f"dl_json_{task_key}_{idx}",help="下载当前文件的结构化检测结果 JSON（detections 为业务口径检测；低置信候选框见 low_conf_candidates）")
 
         # ---- 行6：推理参数(12,可折叠) ----
         with st.expander("推理参数与模型详情",expanded=False):
