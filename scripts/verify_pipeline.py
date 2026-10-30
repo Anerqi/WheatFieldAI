@@ -97,7 +97,7 @@ def main():
 
     # 权重路径存在性
     missing_w, ok_w = DualModelManager(cfg).check_weights("weed", "fusion")
-    check("杂草三模型权重存在", ok_w, str(missing_w))
+    check("杂草五模型权重存在", ok_w, str(missing_w))
     missing_p, ok_p = DualModelManager(cfg).check_weights("pest", "fusion")
     check("害虫三模型权重存在", ok_p, str(missing_p))
 
@@ -113,16 +113,19 @@ def main():
     wr = infer_weed_single_image(weed_img, cfg, manager, mode="fusion")
     weed_total_ms = round((time.time() - t0) * 1000, 1)
     check("杂草融合返回 ok", wr["status"] == "ok")
+    check("杂草融合使用五模型",
+          wr["models_used"] == ["YOLO11s", "YOLO11s-box8", "YOLO11s-1280",
+                                "YOLOX-Dinov3 Small", "YOLOX-Dinov3 Base"])
     check("杂草融合检出框 > 0", wr["num_detections"] > 0, f"{wr['num_detections']} 框")
     check("杂草类别 Obonianghao",
           all(d["category_name"] == "Obonianghao" for d in wr["detections"]))
     check("杂草危害等级合法", wr["hazard"]["level"] in ("轻", "中", "重"))
     check("杂草建议非空", bool(wr["advice"]["advice"]))
-    check("杂草 WBF 参数 = 任务05 固定（iou 0.65/skip 0.01/max/1:1:1）",
+    check("杂草 WBF 参数 = 五模型固定（iou 0.65/skip 0.01/max/1:1:1:1:1）",
           wr["wbf_params"] and wr["wbf_params"]["iou_thr"] == 0.65
           and wr["wbf_params"]["skip_box_thr"] == 0.01
           and wr["wbf_params"]["conf_type"] == "max"
-          and wr["wbf_params"]["weights"] == [1.0, 1.0, 1.0])
+          and wr["wbf_params"]["weights"] == [1.0, 1.0, 1.0, 1.0, 1.0])
     check("杂草融合首载 + 纯推理耗时已记录",
           wr["model_load_ms"] > 0 and wr["net_inference_ms"] > 0,
           f"load={wr['model_load_ms']}ms net={wr['net_inference_ms']}ms total={weed_total_ms}ms")

@@ -64,6 +64,10 @@ def main() -> int:
     asset_paths = {
         "weed_yolo11s":
             cfg["weed"]["paths"]["yolo11_weights"],
+        "weed_yolo11s_box8":
+            cfg["weed"]["paths"]["yolo11_box8_weights"],
+        "weed_yolo11s_1280":
+            cfg["weed"]["paths"]["yolo11_1280_weights"],
         "weed_yolox_small":
             cfg["weed"]["paths"][
                 "yolox_small_weights"

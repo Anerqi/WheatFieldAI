@@ -79,8 +79,8 @@ class _FakePestManager:
 class DecisionConfTests(unittest.TestCase):
     def test_config_has_decision_conf(self):
         cfg = _cfg()
-        self.assertEqual(get_decision_conf(cfg["weed"]), 0.25)
-        self.assertEqual(get_decision_conf(cfg["pest"]), 0.25)
+        self.assertEqual(get_decision_conf(cfg["weed"]), 0.50)
+        self.assertEqual(get_decision_conf(cfg["pest"]), 0.30)
 
     def test_invalid_decision_conf_rejected(self):
         with self.assertRaises(ValueError):

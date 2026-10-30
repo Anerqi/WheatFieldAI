@@ -253,7 +253,7 @@ with col_c:
         st.markdown(card_head("01 · 工作台控制","检测任务"),unsafe_allow_html=True)
         task=st.segmented_control("检测对象",["杂草检测","害虫检测"],default="杂草检测",key="task_control",help="请选择检测对象；系统不会自动猜测图片属于哪个任务。")
         task_key="weed" if task=="杂草检测" else "pest"
-        mode=st.segmented_control("推理模式",["高精度融合","快速单模型"],key="mode_control",help="高精度融合使用任务既定融合路线；快速单模型用于快速复核或显存不足场景。")
+        mode=st.segmented_control("推理模式",["高精度融合","快速单模型"],key="mode_control",help="高精度融合使用五模型 WBF（YOLO11s 960/box8/1280 + YOLOX Small/Base）；快速单模型用于快速复核或显存不足场景。")
         mode_key="fusion" if mode=="高精度融合" else ("yolo11" if task_key=="weed" else "fast")
         uploaded_files=st.file_uploader("上传田间图片",type=["jpg","jpeg","png"],accept_multiple_files=True,help="支持 JPG/JPEG/PNG；单张不超过 20 MB；单批最多 10 张。")
         st.markdown('<div class="helper">JPG / JPEG / PNG · 单张 ≤20MB · 单批 ≤10张</div>',unsafe_allow_html=True)
@@ -400,7 +400,7 @@ if uploaded_files:
                     st.markdown(f'<div class="class-table"><table><thead><tr><th>类别（拉丁学名）</th><th class="num">数量</th></tr></thead><tbody>{_rows}</tbody></table></div>',unsafe_allow_html=True)
                     st.markdown(f'<div class="small" style="margin-top:6px">共 {len(result["class_counts"])} 类 · {result["num_detections"]} 目标（置信度 ≥ {result["decision_conf"]:.2f}）。</div>',unsafe_allow_html=True)
                 else:
-                    st.markdown(f'**Obonianghao（牛鞭草）** · {result["num_detections"]} 个目标',unsafe_allow_html=True)
+                    st.markdown(f'**Obonianghao（播娘蒿）** · {result["num_detections"]} 个目标',unsafe_allow_html=True)
         with c_h:
             with st.container(border=True):
                 hazard=result["hazard"];level=hazard["level"];label=hazard["label"];hazard_cls={"轻":"light","中":"medium","重":"heavy"}.get(level,"light")
@@ -423,12 +423,12 @@ if uploaded_files:
                 shown=[d for d in dets if show_low or d["confidence"]>=result["decision_conf"]]
                 hidden_n=len(dets)-len(shown)
                 if view=="键值卡片":
-                    rows="".join(f'<div class="kv-card"><span class="kv-conf">#{i+1}</span> · {escape(d["category_name"] if task_key=="pest" else "Obonianghao（牛鞭草）")} · 置信度 <span class="kv-conf">{d["confidence"]:.4f}</span>'+(f' · ({int(d["bbox_xyxy"][0])},{int(d["bbox_xyxy"][1])}) → ({int(d["bbox_xyxy"][2])},{int(d["bbox_xyxy"][3])})' if show_xy else '')+'</div>' for i,d in enumerate(shown))
+                    rows="".join(f'<div class="kv-card"><span class="kv-conf">#{i+1}</span> · {escape(d["category_name"] if task_key=="pest" else "Obonianghao（播娘蒿）")} · 置信度 <span class="kv-conf">{d["confidence"]:.4f}</span>'+(f' · ({int(d["bbox_xyxy"][0])},{int(d["bbox_xyxy"][1])}) → ({int(d["bbox_xyxy"][2])},{int(d["bbox_xyxy"][3])})' if show_xy else '')+'</div>' for i,d in enumerate(shown))
                     st.markdown(f'<div class="kv-list">{rows}</div>',unsafe_allow_html=True)
                 else:
                     rows=[]
                     for i,d in enumerate(shown):
-                        r={"序号":i+1,"类别":d["category_name"] if task_key=="pest" else "Obonianghao（牛鞭草）","置信度":f'{d["confidence"]:.4f}'}
+                        r={"序号":i+1,"类别":d["category_name"] if task_key=="pest" else "Obonianghao（播娘蒿）","置信度":f'{d["confidence"]:.4f}'}
                         if show_xy:
                             r.update({"x1":int(d["bbox_xyxy"][0]),"y1":int(d["bbox_xyxy"][1]),"x2":int(d["bbox_xyxy"][2]),"y2":int(d["bbox_xyxy"][3]),"宽":int(d["bbox_xyxy"][2]-d["bbox_xyxy"][0]),"高":int(d["bbox_xyxy"][3]-d["bbox_xyxy"][1])})
                         rows.append(r)
@@ -461,4 +461,4 @@ if uploaded_files:
             if wp:meta.append(f'WBF：iou={wp["iou_thr"]}, skip={wp["skip_box_thr"]}, conf={wp["conf_type"]}, weights={wp["weights"]}' if "iou_thr" in wp else f'融合：{wp["type"]}（配置来源：{wp.get("config_source","")}）')
             st.markdown('<div class="tech-details">'+"<br>".join(escape(x) for x in meta)+"</div>",unsafe_allow_html=True)
 
-st.markdown(f'<div class="site-footer"><div class="footer-brand">Anerqi</div><div class="panel-kicker">附录 · 关于本系统</div><div class="footer-title">验证集指标与模型说明</div><div class="footer-body"><strong>杂草侧</strong>：YOLO11s + YOLOX-Dinov3 Small/Base 异构 WBF；验证集 COCO 评测 mAP50=0.828036、mAP50-95=0.443757、AP75=0.415953，基于 787 张验证集图片、2596 个标注框。该结果不是独立测试集指标，不代表对任意上传图片的精度承诺。<br><strong>害虫侧</strong>：YOLO11m + YOLO11l + YOLO11s refined classwise WBF；本地验证集 mAP50=0.80524、mAP50-95=0.52410。平台测试集没有公开真值，平台实际分数以正式评测为准。<br><strong>类别</strong>：杂草 1 类：Obonianghao（牛鞭草）；害虫 32 类英文标准名（无可靠中文别名文件，不自行翻译），运行时从 dataset.yaml names 段加载并严格保持 ID 0–31 顺序。指标均为验证集口径。</div></div>',unsafe_allow_html=True)
+st.markdown(f'<div class="site-footer"><div class="footer-brand">Anerqi</div><div class="panel-kicker">附录 · 关于本系统</div><div class="footer-title">验证集指标与模型说明</div><div class="footer-body"><strong>杂草侧</strong>：YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small/Base 五模型 WBF；本地验证集 COCO 评测 mAP50=0.8232、mAP50-95=0.4525、AP75=0.4357，基于 787 张验证集图片、2596 个标注框。该结果不是独立测试集指标，不代表对任意上传图片的精度承诺。<br><strong>害虫侧</strong>：YOLO11m + YOLO11l + YOLO11s refined classwise WBF；本地验证集 mAP50=0.80524、mAP50-95=0.52410。平台测试集没有公开真值，平台实际分数以正式评测为准。<br><strong>类别</strong>：杂草 1 类：Obonianghao（播娘蒿）；害虫 32 类英文标准名（无可靠中文别名文件，不自行翻译），运行时从 dataset.yaml names 段加载并严格保持 ID 0–31 顺序。指标均为验证集口径。</div></div>',unsafe_allow_html=True)

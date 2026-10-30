@@ -8,6 +8,16 @@ assets:
     filename: baseline_best.pt
     nominal_size_mb: 19.3
     sha256_prefix: "51004fe018b0"
+  - id: weed_yolo11s_box8
+    task: weed
+    filename: best.pt
+    nominal_size_mb: 19.3
+    sha256_prefix: "d7ebf0b246e9"
+  - id: weed_yolo11s_1280
+    task: weed
+    filename: best.pt
+    nominal_size_mb: 19.4
+    sha256_prefix: "70ff3d343c8b"
   - id: weed_yolox_small
     task: weed
     filename: best_ckpt.pth

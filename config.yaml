@@ -16,6 +16,10 @@ weed:
   paths:
     # YOLO11s 教师模型（任务 03/07 验证）
     yolo11_weights: "models/weed/yolo11s/baseline_best.pt"
+    # YOLO11s box=8.0 定位消融模型（960；五模型融合第 2 路）
+    yolo11_box8_weights: "models/weed/yolo11s_box8/best.pt"
+    # YOLO11s 1280 训练模型（1280；五模型融合第 3 路）
+    yolo11_1280_weights: "models/weed/yolo11s_1280/best.pt"
     # YOLOX-Dinov3 Small（任务 02/03/05 验证）
     yolox_small_weights: "models/weed/dinov3_small/best_ckpt.pth"
     # YOLOX-Dinov3 Base（任务 04/05/06 验证）
@@ -26,21 +30,23 @@ weed:
     yolo11_conf: 0.001
     yolo11_iou: 0.70
     yolo11_imgsz: 960
+    yolo11_box8_imgsz: 960
+    yolo11_1280_imgsz: 1280
     yolox_conf: 0.01
     yolox_nms: 0.65
     yolox_imgsz: 640
 
   # 业务决策阈值：仅 >= 该置信度的检测参与计数 / 危害等级 / 导出主列表；
   # 低于该值的为"低置信候选框"，单独保留（low_conf_candidates）。推理阈值不变（评测口径）。
-  # 0.25 为初始值，建议在独立验证集上按 F1 最优点校准。
-  decision_conf: 0.25
+  # 五模型融合后按 F1 校准：杂草采用 0.50；建议按现场数据复核。
+  decision_conf: 0.50
 
-  # WBF 融合参数：任务 05 最佳配置（固定，界面不暴露；不得用于害虫 classwise WBF）
+  # WBF 融合参数（五模型等权；顺序：YOLO11s : box8 : 1280 : YOLOX Small : YOLOX Base）
   wbf:
     iou_thr: 0.65
     skip_box_thr: 0.01
     conf_type: "max"          # max / avg
-    weights: [1.0, 1.0, 1.0]  # YOLO11s : YOLOX Small : YOLOX Base
+    weights: [1.0, 1.0, 1.0, 1.0, 1.0]
 
   # 类别映射（杂草 1 类；害虫 32 类名称唯一数据源：configs/dataset.yaml names 段）
   class_mapping:
@@ -71,8 +77,8 @@ pest:
   # 快速单模型使用哪个权重
   fast_model: "yolo11m"
 
-  # 业务决策阈值（含义同 weed.decision_conf；建议按类别/验证集校准）
-  decision_conf: 0.25
+  # 业务决策阈值（含义同 weed.decision_conf；任务 22 校准：害虫采用平衡点 0.30）
+  decision_conf: 0.30
 
 # ------------------------------------------------------------
 # 上传限制（通用）
@@ -137,7 +143,8 @@ advice:
 
 # ------------------------------------------------------------
 # 环境变量覆盖说明：
-#   WHEATWEED_YOLO11_WEIGHTS / WHEATWEED_YOLOX_SMALL_WEIGHTS / WHEATWEED_YOLOX_BASE_WEIGHTS
+#   WHEATWEED_YOLO11_WEIGHTS / WHEATWEED_YOLO11_BOX8_WEIGHTS / WHEATWEED_YOLO11_1280_WEIGHTS
+#   WHEATWEED_YOLOX_SMALL_WEIGHTS / WHEATWEED_YOLOX_BASE_WEIGHTS
 #   PEST_YOLO11M_WEIGHTS / PEST_YOLO11L_WEIGHTS / PEST_YOLO11S_WEIGHTS
 #   PEST_DATASET_YAML / PEST_CLASSWISE_CONFIG
 #   WHEATWEED_DEVICE（device: auto/cuda/cpu）

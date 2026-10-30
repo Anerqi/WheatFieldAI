@@ -112,7 +112,7 @@ def verify_weed_fusion(
         f"杂草 WBF conf_type 错误：{params.get('conf_type')}",
     )
     assert_true(
-        params.get("weights") == [1.0, 1.0, 1.0],
+        params.get("weights") == [1.0, 1.0, 1.0, 1.0, 1.0],
         f"杂草 WBF weights 错误：{params.get('weights')}",
     )
 

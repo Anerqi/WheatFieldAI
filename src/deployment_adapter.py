@@ -220,7 +220,10 @@ def export_result(
         "num_detections": result["num_detections"],
         "mean_confidence": result["mean_confidence"],
         "max_confidence": result["max_confidence"],
+        "decision_conf": result["decision_conf"],
+        "num_candidates_total": result["num_candidates_total"],
         "detections": result["detections"],
+        "low_conf_candidates": result.get("low_conf_candidates", []),
         "hazard": result["hazard"],
         "advice": result["advice"],
         "wbf_params": result["wbf_params"],
@@ -266,6 +269,8 @@ def get_required_weights(
         if mode == "fusion":
             return [
                 paths["yolo11_weights"],
+                paths["yolo11_box8_weights"],
+                paths["yolo11_1280_weights"],
                 paths["yolox_small_weights"],
                 paths["yolox_base_weights"],
             ]

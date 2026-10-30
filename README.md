@@ -1,13 +1,13 @@
 <!-- README.md -->
 # 小麦田间杂草与害虫智能识别及辅助决策系统
 
-小麦田间杂草（1 类）与害虫（32 类）双任务识别工作台：本地 Streamlit Web 应用，杂草侧 YOLO11s + YOLOX-Dinov3 Small/Base 异构 WBF 融合，害虫侧 YOLO11m/l/s 三模型 refined classwise WBF；输出检测框、类别统计、危害等级与防治方向建议（原型规则），支持标注 JPG 与结构化 JSON 导出。
+小麦田间杂草（1 类）与害虫（32 类）双任务识别工作台：本地 Streamlit Web 应用，杂草侧 YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small/Base 五模型 WBF 融合，害虫侧 YOLO11m/l/s 三模型 refined classwise WBF；输出检测框、类别统计、危害等级与防治方向建议（原型规则），支持标注 JPG 与结构化 JSON 导出。
 
 推理、融合与规则算法沿用已通过真实 CLI / Web 验证的实现（封装层采用整体复制基线 + 增量包装，不重写已验证算法；模块溯源见各文件头注释与 `THIRD_PARTY_NOTICES.md`）。
 
 <p align="center"><img src="assets/banner.jpg" alt="WheatFieldAI banner" width="720"></p>
 
-**完整运行资产**：六套模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
+**完整运行资产**：八套本地模型权重（其中两套 YOLO11s 变体待发布）与训练/验证数据集通过 GitHub Release（tag `assets-v1`）及单独渠道提供。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 > **核心能力概览**：杂草 / 害虫双任务识别 · 高精度融合模式 / 快速单模型模式 · 检测框 / 类别统计 / 危害等级 / 防治方向建议 · 标注 JPG 与结构化 JSON 导出 · 字体与图标本地化，离线可用
 
@@ -15,7 +15,7 @@
 
 本项目面向小麦田间生产场景，将"识别"进一步延伸至"识别 → 辅助决策"：用户上传田间图像后，系统给出检测框、按类别统计、基于密度的危害等级与防治方向建议，并可导出标注图与结构化 JSON 供后续系统使用。
 
-- 杂草任务：YOLO11s（快速单模型）与 YOLO11s + YOLOX-Dinov3 Small/Base 异构 WBF 融合（高精度融合）两条推理路径；
+- 杂草任务：YOLO11s（快速单模型）与 YOLO11s 960/box8/1280 + YOLOX-Dinov3 Small/Base 五模型 WBF 融合（高精度融合）两条推理路径；
 - 害虫任务：YOLO11m（快速单模型）与 YOLO11m + YOLO11l + YOLO11s 三模型 refined classwise WBF 融合（高精度融合）两条推理路径；
 - 全部指标与结论均为本地验证集口径，不代表对任意上传图片的精度承诺。
 
@@ -48,7 +48,7 @@
 - 浏览器标签页图标与品牌栏图标使用小麦田插画（`static/wheat-icon-128.png` / `-64.png`）；
 - 字体与图标由 Streamlit 静态服务提供（`.streamlit/config.toml` 中 `enableStaticServing = true`）；
 - 上传控件文案与服务端限制一致（`maxUploadSize = 20`，单张 ≤20 MB）；
-- 无结果时显示带编号三步引导的空状态卡；推理阈值沿用评测口径（0.001 / 0.01），但检测数量、类别统计、危害等级与 JSON `detections` 只计入置信度 ≥ `decision_conf`（`config.yaml`，默认 0.25）的检测，低于该值的候选框单独放在 `low_conf_candidates`，页面可勾选叠加显示；
+- 无结果时显示带编号三步引导的空状态卡；推理阈值沿用评测口径（0.001 / 0.01），但检测数量、类别统计、危害等级与 JSON `detections` 只计入置信度 ≥ `decision_conf`（杂草 0.50 / 害虫 0.30）的检测，低于该值的候选框单独放在 `low_conf_candidates`，页面可勾选叠加显示；
 - 危害等级与防治建议仍为原型规则，需农学专家校准，不构成正式农业处方。
 
 ## 4. 项目结构
@@ -149,6 +149,8 @@ WHEATWEED_PORT
 | 任务 | 模型 | 文件（models/ 下） | 用途 |
 |---|---|---|---|
 | 杂草 | YOLO11s | `weed/yolo11s/baseline_best.pt` | 快速单模型 / 融合成员 |
+| 杂草 | YOLO11s-box8 | `weed/yolo11s_box8/best.pt` | 融合成员（960，任务 24） |
+| 杂草 | YOLO11s-1280 | `weed/yolo11s_1280/best.pt` | 融合成员（1280，任务 24） |
 | 杂草 | YOLOX-Dinov3 Small | `weed/dinov3_small/best_ckpt.pth` | 高精度融合成员 |
 | 杂草 | YOLOX-Dinov3 Base | `weed/dinov3_base/best_ckpt.pth` | 高精度融合成员 |
 | 害虫 | YOLO11m | `pest/yolo11m/best.pt` | 快速单模型 / 融合成员 |
@@ -159,7 +161,7 @@ WHEATWEED_PORT
 
 ### 7.2 完整运行资产下载（Release）
 
-六套模型权重与训练/验证数据集通过 GitHub Release（tag `assets-v1`）提供，全部不适用项目 MIT，按各自来源条款管理：
+八套本地模型权重与训练/验证数据集：Release（tag `assets-v1`）目前提供下列六套权重与数据集；两套 YOLO11s 变体（box8、1280）为任务 24 本地训练产物，尚未加入 Release，需单独获取或重新发布。全部不适用项目 MIT，按各自来源条款管理：
 
 ```text
 weed_yolo11s_baseline_best.pt             18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
@@ -188,7 +190,7 @@ python -B packaging/check_models.py
 python -B packaging/check_models.py --print-sha256
 ```
 
-`SHA256SUMS.txt` 用于校验公开 Release 资产；`packaging/model_assets.yaml` 保存六套本地模型权重的真实 SHA-256 前 12 位。路径唯一真源仍然是 config.yaml。
+`SHA256SUMS.txt` 用于校验公开 Release 资产；`packaging/model_assets.yaml` 保存八套本地模型权重的真实 SHA-256 前 12 位（其中两套变体待 Release）。路径唯一真源仍然是 config.yaml。
 
 ## 8. 32 类类别体系与 WBF
 
@@ -230,9 +232,9 @@ python -B scripts/verify_deployment.py --weed-image "test_images/weed/你的杂�
 杂草（本地验证集：787 张图像、2596 个标注框）：
 
 ```text
-mAP50 = 0.828036
-mAP50-95 = 0.443757
-AP75 = 0.415953
+mAP50 = 0.8232
+mAP50-95 = 0.4525
+AP75 = 0.4357
 ```
 
 害虫（本地验证集：4330 张图像，refined classwise WBF）：
@@ -277,7 +279,7 @@ mAP50-95 = 0.52410
 - Ultralytics YOLO11 相关模型与实现受 Ultralytics 许可条款约束；本项目公开发布所采用的 YOLO11 资产按 AGPL-3.0 路径处理，具体边界见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 六套模型权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
+- 八套模型权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`，目前含六套）及单独渠道按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 真实性声明

@@ -4,7 +4,8 @@ models.py
 =========
 双任务模型管理器（任务 08）。
 
-- 杂草侧：YOLO11s + YOLOX-Dinov3 Small + YOLOX-Dinov3 Base（任务 07 逻辑）
+- 杂草侧：YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280（1280）
+  + YOLOX-Dinov3 Small + YOLOX-Dinov3 Base（五模型 WBF）
 - 害虫侧：YOLO11m + YOLO11l + YOLO11s（提交包权重）
 
 显存策略（记录在案）：
@@ -44,6 +45,7 @@ class DualModelManager:
         self._lock = threading.RLock()
         # 杂草模型
         self._yolo11 = None
+        self._yolo11_aux = {}  # variant -> model（box8 / 1280）
         self._yolox = {}  # size -> model
         # 害虫模型
         self._pest = PestModelManager(cfg.get("pest", {}), self.device)
@@ -77,6 +79,8 @@ class DualModelManager:
         weed_paths = self.cfg["weed"]["paths"]
         required = [("yolo11_weights", weed_paths["yolo11_weights"])]
         if mode == "fusion":
+            required.append(("yolo11_box8_weights", weed_paths["yolo11_box8_weights"]))
+            required.append(("yolo11_1280_weights", weed_paths["yolo11_1280_weights"]))
             required.append(("yolox_small_weights", weed_paths["yolox_small_weights"]))
             required.append(("yolox_base_weights", weed_paths["yolox_base_weights"]))
         missing = [f"{name}: {p}" for name, p in required if not os.path.isfile(p)]
@@ -94,6 +98,18 @@ class DualModelManager:
             model.eval()
             self._yolo11 = model
         return self._yolo11
+
+    def get_yolo11_variant(self, variant):
+        """加载额外的 YOLO11s checkpoint（box8 / 1280），仅在融合模式使用。"""
+        if variant in self._yolo11_aux:
+            return self._yolo11_aux[variant]
+        from ultralytics import YOLO
+        weight = self.cfg["weed"]["paths"][f"yolo11_{variant}_weights"]
+        model = YOLO(weight)
+        model.to(self.device)
+        model.eval()
+        self._yolo11_aux[variant] = model
+        return model
 
     def get_yolox(self, size):
         if size not in self._yolox:
@@ -124,6 +140,7 @@ class DualModelManager:
         """释放全部缓存模型（任务切换/显存不足降级时调用）。"""
         with self._lock:
             self._yolo11 = None
+            self._yolo11_aux = {}
             self._yolox = {}
             self._pest.release()
             if torch.cuda.is_available():
@@ -136,7 +153,13 @@ class DualModelManager:
         if task == "pest":
             return self._pest.models_in_use(mode)
         if mode == "fusion":
-            return ["YOLO11s", "YOLOX-Dinov3 Small", "YOLOX-Dinov3 Base"]
+            return [
+                "YOLO11s",
+                "YOLO11s-box8",
+                "YOLO11s-1280",
+                "YOLOX-Dinov3 Small",
+                "YOLOX-Dinov3 Base",
+            ]
         return ["YOLO11s"]
 
 

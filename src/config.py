@@ -3,7 +3,8 @@
 config.py
 =========
 配置加载（任务 08 双任务系统）：YAML 文件 + 环境变量覆盖。
-- 杂草路径：WHEATWEED_YOLO11_WEIGHTS / WHEATWEED_YOLOX_SMALL_WEIGHTS / WHEATWEED_YOLOX_BASE_WEIGHTS
+- 杂草路径：WHEATWEED_YOLO11_WEIGHTS / WHEATWEED_YOLO11_BOX8_WEIGHTS /
+  WHEATWEED_YOLO11_1280_WEIGHTS / WHEATWEED_YOLOX_SMALL_WEIGHTS / WHEATWEED_YOLOX_BASE_WEIGHTS
 - 害虫路径：PEST_YOLO11M_WEIGHTS / PEST_YOLO11L_WEIGHTS / PEST_YOLO11S_WEIGHTS
 - 害虫类别/融合配置：PEST_DATASET_YAML / PEST_CLASSWISE_CONFIG
 - 设备：WHEATWEED_DEVICE（auto / cuda / cpu）
@@ -21,6 +22,8 @@ _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
 # 需要解析为绝对路径的配置键（与 config.yaml 结构一一对应）
 _REL_PATH_KEYS = [
     ("weed", "paths", "yolo11_weights"),
+    ("weed", "paths", "yolo11_box8_weights"),
+    ("weed", "paths", "yolo11_1280_weights"),
     ("weed", "paths", "yolox_small_weights"),
     ("weed", "paths", "yolox_base_weights"),
     ("pest", "paths", "yolo11m_weights"),
@@ -41,6 +44,8 @@ def load_config(config_path=None):
     # 环境变量覆盖
     env_map = [
         ("WHEATWEED_YOLO11_WEIGHTS", ("weed", "paths", "yolo11_weights")),
+        ("WHEATWEED_YOLO11_BOX8_WEIGHTS", ("weed", "paths", "yolo11_box8_weights")),
+        ("WHEATWEED_YOLO11_1280_WEIGHTS", ("weed", "paths", "yolo11_1280_weights")),
         ("WHEATWEED_YOLOX_SMALL_WEIGHTS", ("weed", "paths", "yolox_small_weights")),
         ("WHEATWEED_YOLOX_BASE_WEIGHTS", ("weed", "paths", "yolox_base_weights")),
         ("PEST_YOLO11M_WEIGHTS", ("pest", "paths", "yolo11m_weights")),

@@ -8,6 +8,7 @@
 - 「01 · 工作台控制」卡：选择检测对象（杂草/害虫）、推理模式（高精度融合/快速单模型）、上传图片；
 - 「02 · 运行状态」卡：模型就绪/权重缺失状态点、当前模式信息条、原型声明、批量规则（单批 ≤10 张、单张 ≤20 MB）；
 - 结果出现后依次查看：「标注结果」（检测框可视化）→「结果概览」（数量/置信度/耗时）→「按类别统计」→「危害等级」→「检测框明细」（科研用途，可折叠）→「防治建议」→「结果导出」；
+- 检测数量、类别统计与危害等级使用业务阈值 `decision_conf`（杂草 0.50 / 害虫 0.30）；低于阈值的候选框可在标注卡与明细中勾选显示，不影响推理与 mAP 口径；
 - 页面字体为得意黑（标题/正文）与宋体（标签/数值），favicon 与品牌栏为小麦田插画图标，均由本包 `static/` 本地提供；
 - 无结果时右栏显示三步引导空状态卡。
 - YOLO11 系权重与训练/验证数据集通过仓库 Release（tag `assets-v1`）提供；两套 DINOv3 衍生权重作为本地运行资产单独管理。各资产许可见 README §7.2 与 `THIRD_PARTY_NOTICES.md`。
@@ -147,7 +148,7 @@ logs/streamlit_YYYYmmdd_HHMMSS.log
 | KeyError: 'net_inference_ms' | 清理 __pycache__，使用 python -B 重启 |
 | CUDA out of memory | 释放 GPU 显存，切换快速单模型 |
 | Address already in use | 检查默认 8501，关闭占用程序或设置 WHEATWEED_PORT |
-| 模型未配置 | 检查六套权重及 config.yaml |
+| 模型未配置 | 检查八套权重及 config.yaml |
 | class_configs | 检查 classwise JSON 是否完整覆盖 0..31 |
 
 清理陈旧字节码：
@@ -167,9 +168,9 @@ python -B -m streamlit run app.py --server.port 8501 --server.headless true
 杂草：
 
 ```text
-mAP50 = 0.828036
-mAP50-95 = 0.443757
-AP75 = 0.415953
+mAP50 = 0.8232
+mAP50-95 = 0.4525
+AP75 = 0.4357
 ```
 
 害虫 refined classwise WBF：
@@ -195,7 +196,7 @@ mAP50-95 = 0.52410
 
 ```text
 MADA 赛题数据集许可；
-六套自训练权重再分发限制；
+八套自训练权重再分发限制；
 Ultralytics；
 YOLOX/Dinov3；
 WBF 及其他第三方代码。

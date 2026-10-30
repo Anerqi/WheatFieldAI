@@ -21,15 +21,15 @@ def task_info(task, mode_key):
     if task == "weed":
         if mode_key == "fusion" or mode_key == "高精度融合":
             return {
-                "models": "YOLO11s + YOLOX-Dinov3 Small + YOLOX-Dinov3 Base + WBF（固定参数）",
-                "class_scope": "1 类：Obonianghao（牛鞭草）",
+                "models": "YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small/Base + 五模型 WBF",
+                "class_scope": "1 类：Obonianghao（播娘蒿）",
                 "prototype_note": "杂草危害等级基于检测密度估算，需农学专家校准。",
-                "mode_display": "高精度融合",
+                "mode_display": "高精度融合（五模型 WBF）",
             }
         else:
             return {
                 "models": "仅 YOLO11s（教师模型）",
-                "class_scope": "1 类：Obonianghao（牛鞭草）",
+                "class_scope": "1 类：Obonianghao（播娘蒿）",
                 "prototype_note": "杂草危害等级基于检测密度估算，需农学专家校准。",
                 "mode_display": "快速单模型（YOLO11s）",
             }

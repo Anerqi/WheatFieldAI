@@ -30,7 +30,7 @@ Address already in use
 → 关闭占用端口程序或修改 WHEATWEED_PORT
 
 模型未配置
-→ 检查 config.yaml、六套权重及环境变量
+→ 检查 config.yaml、八套权重及环境变量
 
 class_configs
 → 检查 JSON 是否完整覆盖 0..31
@@ -101,7 +101,7 @@ launcher/
 
 ```text
 exe 只负责检查环境、定位项目目录、启动 Streamlit；
-六套权重继续外置；
+八套权重继续外置；
 models/ 不嵌入 exe；
 CUDA 版 PyTorch 不作为普通资源强行塞入 exe；
 不尝试把约 1.2 GB 模型和数 GB CUDA/PyTorch 运行时做成单文件。

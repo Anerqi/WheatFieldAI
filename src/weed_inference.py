@@ -10,8 +10,10 @@ weed_inference.py
 双任务结构的 cfg["weed"] 子节点；危害等级与防治建议改为双任务
 hazard / advice 模块并传入 task="weed"。
 - YOLO11s : conf=0.001, iou=0.70, imgsz=960
+- YOLO11s-box8 : conf=0.001, iou=0.70, imgsz=960（融合第 2 路）
+- YOLO11s-1280 : conf=0.001, iou=0.70, imgsz=1280（融合第 3 路）
 - YOLOX   : conf=0.01, nms=0.65, imgsz=640
-- WBF     : iou_thr=0.65, skip_box_thr=0.01, conf_type=max, weights=[1,1,1]
+- WBF     : iou_thr=0.65, skip_box_thr=0.01, conf_type=max, weights=[1,1,1,1,1]
 类别映射：YOLO 0 -> COCO 1 -> Obonianghao（常量定义：src/yolox_inference.py；与 config.yaml weed.class_mapping 一致）
 == 来源记录结束 ==
 """
@@ -69,7 +71,7 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         return out
 
     if mode == "fusion":
-        # ---- YOLO11s ----
+        # ---- YOLO11s 主模型（960）----
         m11 = _time_get(weed_manager.get_yolo11, "YOLO11s_load")
         t0 = time.time()
         b11, s11 = run_yolo11_single(m11, img_bgr, device,
@@ -77,8 +79,23 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
                                      inf_cfg["yolo11_imgsz"])
         per_model_times["YOLO11s"] = round((time.time() - t0) * 1000, 1)
 
+        # ---- YOLO11s box8 / 1280 额外分支 ----
+        m_box8 = _time_get(lambda: weed_manager.get_yolo11_variant("box8"), "YOLO11s-box8_load")
+        t0 = time.time()
+        b_box8, s_box8 = run_yolo11_single(m_box8, img_bgr, device,
+                                           inf_cfg["yolo11_conf"], inf_cfg["yolo11_iou"],
+                                           inf_cfg["yolo11_box8_imgsz"])
+        per_model_times["YOLO11s-box8"] = round((time.time() - t0) * 1000, 1)
+
+        m1280 = _time_get(lambda: weed_manager.get_yolo11_variant("1280"), "YOLO11s-1280_load")
+        t0 = time.time()
+        b1280, s1280 = run_yolo11_single(m1280, img_bgr, device,
+                                         inf_cfg["yolo11_conf"], inf_cfg["yolo11_iou"],
+                                         inf_cfg["yolo11_1280_imgsz"])
+        per_model_times["YOLO11s-1280"] = round((time.time() - t0) * 1000, 1)
+
         # ---- YOLOX Small / Base ----
-        boxes_list, scores_list = [], []
+        boxes_list, scores_list = [b11, b_box8, b1280], [s11, s_box8, s1280]
         for size in ("small", "base"):
             m = _time_get(lambda s=size: weed_manager.get_yolox(s), f"YOLOX-{size.title()}_load")
             t0 = time.time()
@@ -90,23 +107,35 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
             boxes_list.append(b)
             scores_list.append(s)
 
-        # ---- WBF 融合（任务 05 固定参数）----
+        # ---- WBF 融合（五模型等权）----
+        weights = list(wbf_cfg["weights"])
+        if len(weights) != len(boxes_list):
+            raise ValueError(
+                f"WBF weights 数量 {len(weights)} 与模型数 {len(boxes_list)} 不一致，"
+                "请检查 config.yaml 的 weed.wbf.weights"
+            )
         t0 = time.time()
         fused_boxes, fused_scores = wbf_fuse_boxes(
-            [b11] + boxes_list, [s11] + scores_list,
-            list(wbf_cfg["weights"]),
+            boxes_list, scores_list,
+            weights,
             iou_thr=wbf_cfg["iou_thr"],
             skip_box_thr=wbf_cfg["skip_box_thr"],
             conf_type=wbf_cfg["conf_type"],
         )
         per_model_times["WBF"] = round((time.time() - t0) * 1000, 1)
         boxes, scores = fused_boxes, fused_scores
-        models_used = ["YOLO11s", "YOLOX-Dinov3 Small", "YOLOX-Dinov3 Base"]
+        models_used = [
+            "YOLO11s",
+            "YOLO11s-box8",
+            "YOLO11s-1280",
+            "YOLOX-Dinov3 Small",
+            "YOLOX-Dinov3 Base",
+        ]
         wbf_params = {
             "iou_thr": wbf_cfg["iou_thr"],
             "skip_box_thr": wbf_cfg["skip_box_thr"],
             "conf_type": wbf_cfg["conf_type"],
-            "weights": list(wbf_cfg["weights"]),
+            "weights": weights,
         }
     else:  # 快速单模型
         m11 = _time_get(weed_manager.get_yolo11, "YOLO11s_load")
@@ -152,7 +181,7 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
     return {
         "status": "ok",
         "mode": mode,
-        "mode_display": "高精度融合" if mode == "fusion" else "快速单模型（YOLO11s）",
+        "mode_display": "高精度融合（五模型 WBF）" if mode == "fusion" else "快速单模型（YOLO11s）",
         "models_used": models_used,
         "inference_time_ms": total_ms,
         "net_inference_ms": net_inference_ms,
