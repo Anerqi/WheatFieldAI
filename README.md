@@ -7,7 +7,7 @@
 
 <p align="center"><img src="assets/banner.jpg" alt="WheatFieldAI banner" width="720"></p>
 
-**完整运行资产**：八套本地模型权重（其中两套 YOLO11s 变体待发布）与训练/验证数据集通过 GitHub Release（tag `assets-v1`）及单独渠道提供。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
+**完整运行资产**：八套本地模型权重与训练/验证数据集通过 GitHub Release 提供：`assets-v1` 含原有六套权重与数据集，`assets-v2` 补充两套 YOLO11s 变体。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 > **核心能力概览**：杂草 / 害虫双任务识别 · 高精度融合模式 / 快速单模型模式 · 检测框 / 类别统计 / 危害等级 / 防治方向建议 · 标注 JPG 与结构化 JSON 导出 · 字体与图标本地化，离线可用
 
@@ -161,9 +161,10 @@ WHEATWEED_PORT
 
 ### 7.2 完整运行资产下载（Release）
 
-八套本地模型权重与训练/验证数据集：Release（tag `assets-v1`）目前提供下列六套权重与数据集；两套 YOLO11s 变体（box8、1280）为任务 24 本地训练产物，尚未加入 Release，需单独获取或重新发布。全部不适用项目 MIT，按各自来源条款管理：
+八套本地模型权重与训练/验证数据集分两个 Release 提供：`assets-v1` 含原有六套权重与数据集；`assets-v2` 含两套 YOLO11s 变体（box8、1280）。全部不适用项目 MIT，按各自来源条款管理：
 
 ```text
+# assets-v1
 weed_yolo11s_baseline_best.pt             18 MB   Ultralytics YOLO11 训练（AGPL-3.0 路径）
 weed_yolox_dinov3_small_best_ckpt.pth    288 MB   基于 Meta DINOv3 lvd1689m 微调（按 DINOv3 License 分发）
 weed_yolox_dinov3_base_best_ckpt.pth     541 MB   同上
@@ -174,8 +175,19 @@ dataset_weed_wheatweed_v1.zip           1.05 GB   杂草 WheatWeed train(3142)+v
 dataset_pest_train_images_v1.part1.zip  ~1.0 GB   害虫训练图片（两卷，解压到同一目录）
 dataset_pest_train_images_v1.part2.zip  ~1.0 GB   害虫训练图片（两卷，解压到同一目录）
 dataset_pest_labels_splits_v1.zip         13 MB   害虫训练标注 + train/val 划分（相对路径）+ 数据集配置
-SHA256SUMS.txt                                    校验公开 Release 资产
+SHA256SUMS.txt                                    校验 assets-v1 资产
+
+# assets-v2（五模型融合新增）
+weed_yolo11s_box8_best.pt                 19 MB   YOLO11s box=8.0 / 960（AGPL-3.0 路径）
+weed_yolo11s_1280_best.pt                 19 MB   YOLO11s / 1280（AGPL-3.0 路径）
+SHA256SUMS_v2.txt                                  八套权重校验清单（含 v1 六套）
 ```
+
+下载页：
+- assets-v1: https://github.com/Anerqi/WheatFieldAI/releases/tag/assets-v1
+- assets-v2: https://github.com/Anerqi/WheatFieldAI/releases/tag/assets-v2
+
+下载后按对应 `SHA256SUMS` 校验；权重放入 `models/` 对应目录（或用环境变量指定路径）；害虫图片两卷解压到同一目录后与 labels/、splits/ 组合。
 
 **DINOv3 衍生权重说明**：`weed_yolox_dinov3_small_best_ckpt.pth` 与 `weed_yolox_dinov3_base_best_ckpt.pth` 基于 Meta DINOv3 lvd1689m 预训练权重微调，构成 DINOv3 License 意义下的衍生作品，按该协议条款分发；协议副本随仓库提供（`licenses/DINOv3-License.md`）。使用限制（贸易管制、禁止军事等终端用途）以协议原文为准，详见 `THIRD_PARTY_NOTICES.md`。
 
@@ -190,7 +202,7 @@ python -B packaging/check_models.py
 python -B packaging/check_models.py --print-sha256
 ```
 
-`SHA256SUMS.txt` 用于校验公开 Release 资产；`packaging/model_assets.yaml` 保存八套本地模型权重的真实 SHA-256 前 12 位（其中两套变体待 Release）。路径唯一真源仍然是 config.yaml。
+`SHA256SUMS.txt` 用于校验 assets-v1 资产；`SHA256SUMS_v2.txt` 覆盖八套权重（含 assets-v1 六套与 assets-v2 两套）；`packaging/model_assets.yaml` 保存八套本地模型权重的真实 SHA-256 前 12 位。路径唯一真源仍然是 config.yaml。
 
 ## 8. 32 类类别体系与 WBF
 
@@ -279,7 +291,7 @@ mAP50-95 = 0.52410
 - Ultralytics YOLO11 相关模型与实现受 Ultralytics 许可条款约束；本项目公开发布所采用的 YOLO11 资产按 AGPL-3.0 路径处理，具体边界见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 八套模型权重与训练/验证数据集**不在代码树内**：以 Release 资产（tag `assets-v1`，目前含六套）及单独渠道按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
+- 八套模型权重与训练/验证数据集**不在代码树内**：`assets-v1`（六套权重 + 数据集）与 `assets-v2`（两套 YOLO11s 变体）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 真实性声明

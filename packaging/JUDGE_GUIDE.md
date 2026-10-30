@@ -11,7 +11,7 @@
 - 检测数量、类别统计与危害等级使用业务阈值 `decision_conf`（杂草 0.50 / 害虫 0.30）；低于阈值的候选框可在标注卡与明细中勾选显示，不影响推理与 mAP 口径；
 - 页面字体为得意黑（标题/正文）与宋体（标签/数值），favicon 与品牌栏为小麦田插画图标，均由本包 `static/` 本地提供；
 - 无结果时右栏显示三步引导空状态卡。
-- YOLO11 系权重与训练/验证数据集通过仓库 Release（tag `assets-v1`）提供；两套 DINOv3 衍生权重作为本地运行资产单独管理。各资产许可见 README §7.2 与 `THIRD_PARTY_NOTICES.md`。
+- YOLO11 系权重与训练/验证数据集通过仓库 Release 提供：`assets-v1`（原有六套权重 + 数据集）与 `assets-v2`（五模型新增的两套 YOLO11s 变体）；两套 DINOv3 衍生权重作为本地运行资产单独管理。各资产许可见 README §7.2 与 `THIRD_PARTY_NOTICES.md`。
 
 ## 1. 启动
 
