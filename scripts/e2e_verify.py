@@ -77,7 +77,7 @@ def wait_for_result(page, filename, timeout_ms=180000):
     """等待结果体渲染完成。
     新版 Bento UI：等待占位区被真实结果替换的信号 ——
     ① 文件状态变为「检测完成」；② 文件名存在；③ 导出下载按钮出现。
-    （注意：不能再用「检测数量」，因为等待占位文案中也含该词，会过早匹配。）
+    （注意：等待条件不使用 KPI 文案，避免占位区过早匹配；当前 KPI 为「正式检测框数」。）
     """
     page.wait_for_selector("text=检测完成", timeout=timeout_ms)
     page.wait_for_selector(f"text={filename}", timeout=timeout_ms)
@@ -126,7 +126,7 @@ def main():
             record("页面加载 + 工作台标题", True)
             upload_file(page, DEFAULT_WEED_IMG)
             wait_for_result(page, weed_name)
-            ok = page.locator('.result-image img').count() >= 2 and page.get_by_text("检测数量").count() > 0
+            ok = page.locator('.result-image img').count() >= 2 and page.get_by_text("正式检测框数").count() > 0
             record("桌面杂草检测：上传真实图并出结果", ok)
             page.screenshot(path=os.path.join(args.out, "desktop_weed_result.png"), full_page=True)
             record("桌面杂草截图", True)
@@ -141,7 +141,7 @@ def main():
             time.sleep(2)
             upload_file(page, DEFAULT_PEST_IMG)
             wait_for_result(page, pest_name, timeout_ms=240000)
-            has_metric = page.get_by_text("检测数量").count() > 0
+            has_metric = page.get_by_text("正式检测框数").count() > 0
             has_class = page.get_by_text("按类别统计").count() > 0
             # 确认是害虫图片（文件名出现在结果展开头）
             header = page.get_by_text(f"检出").count()
@@ -159,7 +159,7 @@ def main():
             time.sleep(2)
             upload_file(page, DEFAULT_PEST_IMG)
             wait_for_result(page, pest_name, timeout_ms=240000)
-            record("窄屏害虫检测出结果", page.get_by_text("检测数量").count() > 0)
+            record("窄屏害虫检测出结果", page.get_by_text("正式检测框数").count() > 0)
             page.screenshot(path=os.path.join(args.out, "narrow_pest_result.png"), full_page=True)
             overflow = page.evaluate("() => document.documentElement.scrollWidth > window.innerWidth + 4")
             record("窄屏无横向溢出", not overflow, f"overflow={overflow}")

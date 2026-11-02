@@ -1,6 +1,6 @@
 # ============================================================
 # 小麦田间杂草 + 害虫双任务识别系统 · 配置（WheatFieldAI 封装版）
-# 术语与指标口径：见 README.md 与 THIRD_PARTY_NOTICES.md
+# 术语唯一真源：项目根 CONTEXT.md
 # 杂草指标口径：任务 05/07；害虫指标口径：害虫提交包（本地验证集）
 # 权重路径支持环境变量覆盖（见文件底部 env 说明）。
 # 封装适配：相对路径以本文件所在目录（项目根）为基准解析为绝对路径。
@@ -16,9 +16,9 @@ weed:
   paths:
     # YOLO11s 教师模型（任务 03/07 验证）
     yolo11_weights: "models/weed/yolo11s/baseline_best.pt"
-    # YOLO11s box=8.0 定位消融模型（960；五模型融合第 2 路）
+    # YOLO11s box=8.0 定位消融模型（960；融合第 2 路）
     yolo11_box8_weights: "models/weed/yolo11s_box8/best.pt"
-    # YOLO11s 1280 训练模型（1280；五模型融合第 3 路）
+    # YOLO11s 1280 训练模型（1280；融合第 3 路）
     yolo11_1280_weights: "models/weed/yolo11s_1280/best.pt"
     # YOLOX-Dinov3 Small（任务 02/03/05 验证）
     yolox_small_weights: "models/weed/dinov3_small/best_ckpt.pth"
@@ -36,19 +36,27 @@ weed:
     yolox_nms: 0.65
     yolox_imgsz: 640
 
-  # 业务决策阈值：仅 >= 该置信度的检测参与计数 / 危害等级 / 导出主列表；
-  # 低于该值的为"低置信候选框"，单独保留（low_conf_candidates）。推理阈值不变（评测口径）。
-  # 五模型融合后按 F1 校准：杂草采用 0.50；建议按现场数据复核。
-  decision_conf: 0.50
+  # 业务决策阈值（任务 26 在 geo_agree 分数尺度上重新校准：
+  #   F1 最优 0.390 -> 取 0.40，原 val P=0.780/R=0.790/F1=0.785
+  #   对照：任务 24 的 max 尺度 0.50 为 P=0.729/R=0.801/F1=0.763）
+  decision_conf: 0.40
 
-  # WBF 融合参数（五模型等权；顺序：YOLO11s : box8 : 1280 : YOLOX Small : YOLOX Base）
+  # WBF 融合参数：五模型等权（任务 24 融合候选实验；任务 26 调整分数聚合）
+  # 顺序必须与 weed_inference.py 的 boxes_list 一致：
+  # YOLO11s : YOLO11s-box8 : YOLO11s-1280 : YOLOX Small : YOLOX Base
   wbf:
     iou_thr: 0.65
     skip_box_thr: 0.01
-    conf_type: "max"          # max / avg
+    conf_type: "avg"          # 任务 26：由 max 改为 avg（配合 score_mode 使用）
+    # 任务 26：把「簇内一致数」并入排序的有界几何调制
+    #   score = avg^(1-g) * (min(n, cap)/cap)^g，g = 0.7/(1+0.7)
+    #   与线性 n^0.7 排序等价，但值域仍为 [0,1]；详见 src/wbf.py 与任务 26 报告
+    score_mode: "geo_agree"
+    geo_beta: 0.412
+    geo_cap: 8
     weights: [1.0, 1.0, 1.0, 1.0, 1.0]
 
-  # 类别映射（杂草 1 类；害虫 32 类名称唯一数据源：configs/dataset.yaml names 段）
+  # 类别映射（唯一真源：CONTEXT.md）
   class_mapping:
     yolo_class_id: 0
     coco_category_id: 1
@@ -77,7 +85,7 @@ pest:
   # 快速单模型使用哪个权重
   fast_model: "yolo11m"
 
-  # 业务决策阈值（含义同 weed.decision_conf；任务 22 校准：害虫采用平衡点 0.30）
+  # 业务决策阈值（含义同 weed.decision_conf；任务 22 校准：害虫 0.30）
   decision_conf: 0.30
 
 # ------------------------------------------------------------
@@ -121,6 +129,9 @@ advice:
       检测密度高。建议尽快安排人工复核与人工/机械除草作业，优先处理检出密集区域；
       如需化学防治，应由持证农技人员依据当地法规与产品标签评估用药种类、剂量与安全间隔期，
       本系统不提供具体农药处方；必要时联系农学专家现场指导。
+    none: |
+      本次未检出目标。请确认检测对象与图片是否匹配、图像是否清晰，并结合田间巡查复核；
+      必要时调整拍摄角度或补充样本后再试。
     disclaimer: |
       原型规则提示：杂草危害等级与防治建议由规则模板自动生成，未经农学专家校准，
       不构成农业防治处方或正式决策依据；正式应用前需农学专家审核。
@@ -137,6 +148,9 @@ advice:
       全面检查诱捕设备并评估其诱集效果；
       【必须】由农技人员或植保专家现场复核，依据虫种、诱捕时间与田间面积综合评估防治方案；
       本系统不提供具体药剂、剂量、浓度、施用次数或安全间隔期，严禁据此直接用药。
+    none: |
+      本次未检出目标。请确认检测对象与图片是否匹配、诱捕设备是否正常，并结合田间虫情调查复核；
+      必要时调整拍摄角度或补充样本后再试。
     disclaimer: |
       原型规则提示：害虫危害等级与防治建议由规则模板自动生成，尚未按虫种、诱捕时间和田间面积
       进行农学校准；系统仅显示检出类别清单，不构成农业处方，任何用药决策须由植保专家完成。

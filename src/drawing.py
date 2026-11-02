@@ -8,6 +8,7 @@ drawing.py
 - 害虫检测框：按 class_id 分配 32 种高区分度颜色（HSV 色相黄金角采样）
 - 标签：类别名 + 置信度
 - 支持密集图限制绘制框数（max_boxes）
+- 低置信候选：low_conf=True 时用灰色细虚线框 + “候选 0.xx”标签（默认 False，保持原行为）
 """
 
 import cv2
@@ -47,7 +48,23 @@ def _detection_label(detection):
     return f"{name} {conf:.2f}"
 
 
-def draw_annotations(img_bgr, detections, max_boxes=200):
+# 低置信候选框：灰色细虚线（与正式检测的彩色实线框区分）
+_LOW_CONF_COLOR = (150, 150, 150)
+
+
+def _draw_dashed_rect(img, x1, y1, x2, y2, color, thickness=1, dash=6):
+    """绘制虚线矩形（OpenCV 无原生虚线，按段绘制）。"""
+    for x in range(x1, x2, dash * 2):
+        xe = min(x + dash, x2)
+        cv2.line(img, (x, y1), (xe, y1), color, thickness, cv2.LINE_AA)
+        cv2.line(img, (x, y2), (xe, y2), color, thickness, cv2.LINE_AA)
+    for y in range(y1, y2, dash * 2):
+        ye = min(y + dash, y2)
+        cv2.line(img, (x1, y), (x1, ye), color, thickness, cv2.LINE_AA)
+        cv2.line(img, (x2, y), (x2, ye), color, thickness, cv2.LINE_AA)
+
+
+def draw_annotations(img_bgr, detections, max_boxes=200, low_conf=False):
     """在 BGR 图像上绘制检测框+标签。
 
     Args:
@@ -56,14 +73,28 @@ def draw_annotations(img_bgr, detections, max_boxes=200):
             - 杂草格式：{'yolo_class_id', 'coco_category_id', 'category_name', 'confidence', 'bbox_xyxy'}
             - 害虫格式：{'class_id', 'category_name', 'confidence', 'bbox_xyxy'}
         max_boxes: 最大绘制框数（防止超密集图面过载）
+        low_conf: 为 True 时按“低置信候选”样式绘制：灰色细虚线框 + “候选 0.32”标签；
+            默认 False 保持原有绘制行为（彩色实线框 + 类别名标签），向后兼容。
 
     Returns:
         BGR ndarray（标注后）
     """
     img = img_bgr.copy()
-    for k, det in enumerate(detections[:max_boxes]):
+    for det in detections[:max_boxes]:
         x1, y1, x2, y2 = [int(v) for v in det["bbox_xyxy"]]
         conf = det["confidence"]
+
+        if low_conf:
+            _draw_dashed_rect(img, x1, y1, x2, y2, _LOW_CONF_COLOR, thickness=1)
+            label = f"候选 {conf:.2f}"
+            (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+            box_y1 = max(0, y1 - th - 4)
+            box_y2 = y1
+            cv2.rectangle(img, (x1, box_y1), (x1 + tw + 4, box_y2), _LOW_CONF_COLOR, -1)
+            cv2.putText(img, label, (x1 + 2, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.4, (255, 255, 255), 1, cv2.LINE_AA)
+            continue
+
         label = _detection_label(det)
         color = _detection_color(det)
 

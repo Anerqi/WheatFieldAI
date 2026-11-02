@@ -41,8 +41,9 @@ from pest_wbf import load_class_configs, NUM_CLASSES
 from drawing import draw_annotations, encode_image_to_bytes
 
 
-DEFAULT_WEED_IMG = "test_images/weed/DJI_weed_0001.jpg"
-DEFAULT_PEST_IMG = "test_images/pest/pest24_0000002.jpg"
+DEFAULT_WEED_IMG = (r"C:\Users\anerqi\Desktop\人工智能大赛\任务输出\02_YOLOX-Dinov3推理管线\val_images"
+                    r"\DJI_20260330150411_0007_D_0_1024_1280_2304.jpg")
+DEFAULT_PEST_IMG = (r"C:\Users\anerqi\Desktop\人工智能大赛\赛题二\test_q2\q2_images\pest24_0000002.jpg")
 
 
 def main():
@@ -121,10 +122,16 @@ def main():
           all(d["category_name"] == "Obonianghao" for d in wr["detections"]))
     check("杂草危害等级合法", wr["hazard"]["level"] in ("轻", "中", "重"))
     check("杂草建议非空", bool(wr["advice"]["advice"]))
-    check("杂草 WBF 参数 = 五模型固定（iou 0.65/skip 0.01/max/1:1:1:1:1）",
-          wr["wbf_params"] and wr["wbf_params"]["iou_thr"] == 0.65
-          and wr["wbf_params"]["skip_box_thr"] == 0.01
-          and wr["wbf_params"]["conf_type"] == "max"
+    # 任务 26：断言改为「推理链路与 config.yaml 一致」，而不是硬编码参数值。
+    # 参数取值本身由 tests/test_wbf_score_mode.py 与 tests/test_decision.py 覆盖；
+    # 这里要抓的是「推理没有按配置执行」这类回归。
+    _wbf_cfg = cfg["weed"]["wbf"]
+    check("杂草 WBF 参数与 config.yaml 一致（任务26：iou/skip/conf_type/score_mode/等权）",
+          wr["wbf_params"]
+          and wr["wbf_params"]["iou_thr"] == _wbf_cfg["iou_thr"]
+          and wr["wbf_params"]["skip_box_thr"] == _wbf_cfg["skip_box_thr"]
+          and wr["wbf_params"]["conf_type"] == _wbf_cfg["conf_type"]
+          and wr["wbf_params"]["score_mode"] == _wbf_cfg.get("score_mode", "raw")
           and wr["wbf_params"]["weights"] == [1.0, 1.0, 1.0, 1.0, 1.0])
     check("杂草融合首载 + 纯推理耗时已记录",
           wr["model_load_ms"] > 0 and wr["net_inference_ms"] > 0,

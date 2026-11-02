@@ -7,7 +7,7 @@ wbf.py
 
 == 来源记录（Provenance）==
 本文件中的 iou_xyxy / wbf_fuse_boxes 函数从任务 05 run_wbf_experiment.py 逐字节复制：
-  任务05_异构WBF融合精度优化/run_wbf_experiment.py（项目内部相对来源；公开版已移除本机路径）
+  C:\\Users\\anerqi\\Desktop\\人工智能大赛\\任务输出\\05_异构WBF融合精度优化\\run_wbf_experiment.py
 （行 260-340 附近）。未做任何修改。复制目的：Web 系统 WBF 与任务 05 评测 WBF 逻辑完全一致。
 == 来源记录结束 ==
 
@@ -36,7 +36,8 @@ def iou_xyxy(box, cluster_box):
 
 
 def wbf_fuse_boxes(boxes_list, scores_list, model_weights,
-                   iou_thr=0.55, skip_box_thr=0.0, conf_type="avg"):
+                   iou_thr=0.55, skip_box_thr=0.0, conf_type="avg",
+                   score_mode="raw", geo_beta=0.0, geo_cap=8.0):
     """WBF 融合单图单类框。返回 (fused_boxes (M,4), fused_scores (M,))。
     
     Args:
@@ -46,6 +47,19 @@ def wbf_fuse_boxes(boxes_list, scores_list, model_weights,
         iou_thr: 融合 IoU 阈值
         skip_box_thr: 预过滤阈值（score > skip 才参与融合；融合后 score >= skip 才输出）
         conf_type: "avg" 或 "max"
+        score_mode: 融合分数的调制方式（任务 26 新增，默认 "raw" 与原实现完全一致）
+            "raw"       不做调制
+            "geo_agree" 有界几何调制：s^(1-g) * (min(n,cap)/cap)^g
+                        其中 n 为该簇的框数（一致数），g=geo_beta，cap=geo_cap。
+                        用于把「多模型重叠一致」这一质量信号并入排序；
+                        值域仍为 [0,1]，不破坏置信度的百分比语义。
+        geo_beta: 几何调制强度 g，建议 0.412（等价于线性 n^0.7）；0 表示不调制
+        geo_cap: 一致数饱和点，簇内框数超过 cap 视为同等一致
+
+    == 任务 26 变更说明 ==
+    簇构建、坐标聚合、conf_type 语义均未改动。新增的只有最终分数的可选调制，
+    默认参数下与任务 05 原实现逐值等价（tests/test_wbf_score_mode.py 有断言）。
+    动机与验证见 任务输出/26_融合框策略与后处理优化/01_result.md。
     """
     n_models = len(boxes_list)
     if n_models == 0:
@@ -115,6 +129,14 @@ def wbf_fuse_boxes(boxes_list, scores_list, model_weights,
             fused_score = cluster_max_score[c]
         else:
             raise ValueError(f"unknown conf_type: {conf_type}")
+
+        # 任务 26：可选的一致性调制（默认 raw 时不改变任何数值）
+        if score_mode == "geo_agree":
+            ratio = min(cluster_count[c], geo_cap) / geo_cap
+            fused_score = (fused_score ** (1.0 - geo_beta)) * (ratio ** geo_beta)
+        elif score_mode != "raw":
+            raise ValueError(f"unknown score_mode: {score_mode}")
+
         if fused_score >= skip_box_thr:
             fused_boxes.append(fused_box)
             fused_scores.append(fused_score)

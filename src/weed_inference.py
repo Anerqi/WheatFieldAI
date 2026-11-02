@@ -10,11 +10,11 @@ weed_inference.py
 双任务结构的 cfg["weed"] 子节点；危害等级与防治建议改为双任务
 hazard / advice 模块并传入 task="weed"。
 - YOLO11s : conf=0.001, iou=0.70, imgsz=960
-- YOLO11s-box8 : conf=0.001, iou=0.70, imgsz=960（融合第 2 路）
-- YOLO11s-1280 : conf=0.001, iou=0.70, imgsz=1280（融合第 3 路）
+- YOLO11s-box8 : conf=0.001, iou=0.70, imgsz=960（任务 24 融合第 2 路）
+- YOLO11s-1280 : conf=0.001, iou=0.70, imgsz=1280（任务 24 融合第 3 路）
 - YOLOX   : conf=0.01, nms=0.65, imgsz=640
 - WBF     : iou_thr=0.65, skip_box_thr=0.01, conf_type=max, weights=[1,1,1,1,1]
-类别映射：YOLO 0 -> COCO 1 -> Obonianghao（常量定义：src/yolox_inference.py；与 config.yaml weed.class_mapping 一致）
+类别映射：YOLO 0 -> COCO 1 -> Obonianghao（唯一真源：CONTEXT.md）
 == 来源记录结束 ==
 """
 
@@ -79,7 +79,7 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
                                      inf_cfg["yolo11_imgsz"])
         per_model_times["YOLO11s"] = round((time.time() - t0) * 1000, 1)
 
-        # ---- YOLO11s box8 / 1280 额外分支 ----
+        # ---- YOLO11s box8 / 1280 额外分支（任务 24 融合候选）----
         m_box8 = _time_get(lambda: weed_manager.get_yolo11_variant("box8"), "YOLO11s-box8_load")
         t0 = time.time()
         b_box8, s_box8 = run_yolo11_single(m_box8, img_bgr, device,
@@ -107,7 +107,7 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
             boxes_list.append(b)
             scores_list.append(s)
 
-        # ---- WBF 融合（五模型等权）----
+        # ---- WBF 融合（任务 24 五模型固定参数）----
         weights = list(wbf_cfg["weights"])
         if len(weights) != len(boxes_list):
             raise ValueError(
@@ -121,6 +121,10 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
             iou_thr=wbf_cfg["iou_thr"],
             skip_box_thr=wbf_cfg["skip_box_thr"],
             conf_type=wbf_cfg["conf_type"],
+            # 任务 26：一致性几何调制（旧配置无这些键时退回 raw，行为与任务 24 一致）
+            score_mode=wbf_cfg.get("score_mode", "raw"),
+            geo_beta=float(wbf_cfg.get("geo_beta", 0.0)),
+            geo_cap=float(wbf_cfg.get("geo_cap", 8.0)),
         )
         per_model_times["WBF"] = round((time.time() - t0) * 1000, 1)
         boxes, scores = fused_boxes, fused_scores
@@ -135,6 +139,9 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
             "iou_thr": wbf_cfg["iou_thr"],
             "skip_box_thr": wbf_cfg["skip_box_thr"],
             "conf_type": wbf_cfg["conf_type"],
+            "score_mode": wbf_cfg.get("score_mode", "raw"),
+            "geo_beta": float(wbf_cfg.get("geo_beta", 0.0)),
+            "geo_cap": float(wbf_cfg.get("geo_cap", 8.0)),
             "weights": weights,
         }
     else:  # 快速单模型
@@ -170,8 +177,8 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
     # ---- 业务口径：仅 >= decision_conf 的检测参与计数与危害等级 ----
     decision_conf = get_decision_conf(weed_cfg)
     decided, candidates = split_by_conf(detections, decision_conf)
-    mean_conf, _ = confidence_stats(decided)
-    _, max_conf = confidence_stats(detections)  # 最高置信度反映模型原始输出
+    mean_conf, max_decided_conf = confidence_stats(decided)  # 正式检测：均值 / 最高（空列表均为 None）
+    _, max_conf = confidence_stats(detections)  # 最高置信度反映模型原始输出（含低置信候选，保留向后兼容）
 
     # ---- 危害等级与防治建议 ----
     hazard = compute_hazard_level(len(decided), w, h, cfg["hazard"], task="weed")
@@ -195,6 +202,7 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         "decision_conf": decision_conf,
         "mean_confidence": mean_conf,
         "max_confidence": max_conf,
+        "max_decided_confidence": max_decided_conf,
         "detections": decided,
         "low_conf_candidates": candidates,
         "hazard": hazard,

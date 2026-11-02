@@ -27,10 +27,10 @@ def get_advice(hazard_level, advice_cfg, task="weed", level_str=None):
     node = advice_cfg.get(task, advice_cfg)
     label = level_str or hazard_level
 
-    # 规范化等级：提取 "轻" "中" "重"
+    # 规范化等级：未检出单独走 none 文案；缺失时回退 light，保持旧配置兼容
     level_key = "light"
     if "未检出" in label:
-        level_key = "light"
+        level_key = "none"
     elif label in ("轻", "中", "重"):
         level_key = {"轻": "light", "中": "medium", "重": "heavy"}[label]
 

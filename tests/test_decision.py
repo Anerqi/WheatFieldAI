@@ -79,7 +79,8 @@ class _FakePestManager:
 class DecisionConfTests(unittest.TestCase):
     def test_config_has_decision_conf(self):
         cfg = _cfg()
-        self.assertEqual(get_decision_conf(cfg["weed"]), 0.50)
+        # 任务 26：geo_agree 分数尺度上重新校准，F1 最优 0.390 -> 取 0.40
+        self.assertEqual(get_decision_conf(cfg["weed"]), 0.40)
         self.assertEqual(get_decision_conf(cfg["pest"]), 0.30)
 
     def test_invalid_decision_conf_rejected(self):
@@ -138,8 +139,9 @@ class HazardTests(unittest.TestCase):
 
     def test_pest_class_count_rule(self):
         self.assertEqual(compute_hazard_level(3, 1000, 1000, self.h, "pest", major_class_count=1)["level"], "轻")
-        self.assertEqual(compute_hazard_level(3, 1000, 1000, self.h, "pest", major_class_count=2)["level"], "中")
-        self.assertEqual(compute_hazard_level(3, 1000, 1000, self.h, "pest", major_class_count=5)["level"], "重")
+        self.assertEqual(compute_hazard_level(3, 1000, 1000, self.h, "pest", major_class_count=2)["level"], "轻")
+        self.assertEqual(compute_hazard_level(3, 1000, 1000, self.h, "pest", major_class_count=5)["level"], "中")
+        self.assertEqual(compute_hazard_level(3, 1000, 1000, self.h, "pest", major_class_count=6)["level"], "重")
 
 
 class WbfTests(unittest.TestCase):

@@ -27,7 +27,9 @@ def compute_hazard_level(num_detections, width, height, hazard_cfg, task="weed",
         major_class_count: 检出主要类别数（仅害虫使用）
 
     Returns:
-        dict: { level, label, description, severity, density_per_mp, ... }
+        dict: { level, label, description, severity, density_per_mp, none, ... }
+        ``none`` 为 True 表示未检出任何目标（level/label 仍保持"轻"/"轻（未检出）"），
+        供表现层直接渲染中性"未检出"状态，无需解析中文 label。
     """
     node = hazard_cfg.get(task, hazard_cfg)
     area_mp = (width * height) / 1_000_000  # 兆像素
@@ -43,13 +45,13 @@ def compute_hazard_level(num_detections, width, height, hazard_cfg, task="weed",
         if num_detections == 0:
             level, label, severity = "轻", "轻（未检出）", 0
             description = "未检出任何目标，建议保持常规田间巡查。"
-        elif density >= medium_max or major_class_count >= major_medium_max:
+        elif density >= medium_max or major_class_count > major_medium_max:
             level, label, severity = "重", "重", 3
             description = (
                 f"检测密度高（{density:.1f} 个/百万像素）或检出类别数多（{major_class_count} 类），"
                 "建议尽快人工复核与田间虫情调查。"
             )
-        elif density >= light_max or major_class_count >= major_light_max:
+        elif density >= light_max or major_class_count > major_light_max:
             level, label, severity = "中", "中", 2
             description = (
                 f"检测密度中等（{density:.1f} 个/百万像素）或出现多个类别（{major_class_count} 类），"
@@ -72,6 +74,7 @@ def compute_hazard_level(num_detections, width, height, hazard_cfg, task="weed",
             "major_class_count": major_class_count,
             "num_detections": num_detections,
             "image_area_mp": round(area_mp, 4),
+            "none": num_detections == 0,
             "thresholds": {
                 "light_max_per_mp": light_max,
                 "medium_max_per_mp": medium_max,
@@ -111,6 +114,7 @@ def compute_hazard_level(num_detections, width, height, hazard_cfg, task="weed",
         "density_per_mp": density,
         "num_detections": num_detections,
         "image_area_mp": round(area_mp, 4),
+        "none": num_detections == 0,
         "thresholds": {
             "light_max_per_mp": light_max,
             "medium_max_per_mp": medium_max,

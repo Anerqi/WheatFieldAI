@@ -121,8 +121,8 @@ def infer_pest_single_image(img_bgr, cfg, pest_manager, mode="fusion"):
     # ---- 业务口径：仅 >= decision_conf 的检测参与计数、类别统计与危害等级 ----
     decision_conf = get_decision_conf(pest_cfg)
     decided, candidates = split_by_conf(detections, decision_conf)
-    mean_conf, _ = confidence_stats(decided)
-    _, max_conf = confidence_stats(detections)  # 最高置信度反映模型原始输出
+    mean_conf, max_decided_conf = confidence_stats(decided)  # 正式检测：均值 / 最高（空列表均为 None）
+    _, max_conf = confidence_stats(detections)  # 最高置信度反映模型原始输出（含低置信候选，保留向后兼容）
     major_class_count = len(set(d["class_id"] for d in decided))
 
     # ---- 危害等级与防治建议 ----
@@ -151,6 +151,7 @@ def infer_pest_single_image(img_bgr, cfg, pest_manager, mode="fusion"):
         "decision_conf": decision_conf,
         "mean_confidence": mean_conf,
         "max_confidence": max_conf,
+        "max_decided_confidence": max_decided_conf,
         "detections": decided,
         "low_conf_candidates": candidates,
         "class_counts": class_counts,

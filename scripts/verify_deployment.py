@@ -107,9 +107,17 @@ def verify_weed_fusion(
         params.get("skip_box_thr") == 0.01,
         f"杂草 WBF skip_box_thr 错误：{params.get('skip_box_thr')}",
     )
+    # 任务 26：conf_type 由 max 改为 avg，并新增 score_mode=geo_agree 一致性调制。
+    # 断言「落在合法取值内且与配置一致」，避免调参时验证脚本失效。
+    _cfg = load_config(ROOT / "config.yaml")
+    _wbf = _cfg["weed"]["wbf"]
     assert_true(
-        params.get("conf_type") == "max",
-        f"杂草 WBF conf_type 错误：{params.get('conf_type')}",
+        params.get("conf_type") == _wbf["conf_type"],
+        f"杂草 WBF conf_type 错误：{params.get('conf_type')}（配置 {_wbf['conf_type']}）",
+    )
+    assert_true(
+        params.get("score_mode") == _wbf.get("score_mode", "raw"),
+        f"杂草 WBF score_mode 错误：{params.get('score_mode')}（配置 {_wbf.get('score_mode', 'raw')}）",
     )
     assert_true(
         params.get("weights") == [1.0, 1.0, 1.0, 1.0, 1.0],
