@@ -1,7 +1,7 @@
 <!-- README.md -->
 # 小麦田间杂草与害虫智能识别及辅助决策系统
 
-小麦田间杂草（1 类）与害虫（32 类）双任务识别工作台：本地 Streamlit Web 应用，杂草侧 YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small/Base 五模型 WBF 融合，害虫侧 YOLO11m/l/s 三模型 refined classwise WBF；输出检测框、类别统计、危害等级与防治方向建议（原型规则），支持标注 JPG 与结构化 JSON 导出。
+小麦田间杂草（1 类）与害虫（32 类）双任务识别工作台：本地 Streamlit Web 应用，杂草侧 YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small/Base + D-FINE-S（960, ONNX）六模型 WBF 融合，害虫侧 YOLO11m/l/s 三模型 refined classwise WBF；输出检测框、类别统计、危害等级与防治方向建议（原型规则），支持标注 JPG 与结构化 JSON 导出。
 
 推理、融合与规则算法沿用已通过真实 CLI / Web 验证的实现（封装层采用整体复制基线 + 增量包装，不重写已验证算法；模块溯源见各文件头注释与 `THIRD_PARTY_NOTICES.md`）。
 
@@ -15,7 +15,7 @@
 
 本项目面向小麦田间生产场景，将"识别"进一步延伸至"识别 → 辅助决策"：用户上传田间图像后，系统给出检测框、按类别统计、基于密度的危害等级与防治方向建议，并可导出标注图与结构化 JSON 供后续系统使用。
 
-- 杂草任务：YOLO11s（快速单模型）与 YOLO11s 960/box8/1280 + YOLOX-Dinov3 Small/Base 五模型 WBF 融合（高精度融合）两条推理路径；
+- 杂草任务：YOLO11s（快速单模型）与 YOLO11s 960/box8/1280 + YOLOX-Dinov3 Small/Base + D-FINE-S 六模型 WBF 融合（高精度融合）两条推理路径；
 - 害虫任务：YOLO11m（快速单模型）与 YOLO11m + YOLO11l + YOLO11s 三模型 refined classwise WBF 融合（高精度融合）两条推理路径；
 - 全部指标与结论均为本地验证集口径，不代表对任意上传图片的精度承诺。
 
@@ -48,7 +48,7 @@
 - 浏览器标签页图标与品牌栏图标使用小麦田插画（`static/wheat-icon-128.png` / `-64.png`）；
 - 字体与图标由 Streamlit 静态服务提供（`.streamlit/config.toml` 中 `enableStaticServing = true`）；
 - 上传控件文案与服务端限制一致（`maxUploadSize = 20`，单张 ≤20 MB）；
-- 无结果时显示带编号三步引导的空状态卡；推理阈值沿用评测口径（0.001 / 0.01），但检测数量、类别统计、危害等级与 JSON `detections` 只计入置信度 ≥ `decision_conf`（杂草 0.40 / 害虫 0.30）的检测，低于该值的候选框单独放在 `low_conf_candidates`，页面可勾选叠加显示；
+- 无结果时显示带编号三步引导的空状态卡；推理阈值沿用评测口径（0.001 / 0.01），但检测数量、类别统计、危害等级与 JSON `detections` 只计入置信度 ≥ `decision_conf`（杂草 0.44 / 害虫 0.30）的检测，低于该值的候选框单独放在 `low_conf_candidates`，页面可勾选叠加显示；
 - 侧边栏提供独立「汇报」页（`pages/2_汇报.py`），支持单图指标图表/独立 HTML 导出、批量汇总打包与本地验证集模型性能查看；
 - 危害等级与防治建议仍为原型规则，需农学专家校准，不构成正式农业处方。
 
@@ -154,6 +154,7 @@ WHEATWEED_PORT
 | 杂草 | YOLO11s-1280 | `weed/yolo11s_1280/best.pt` | 融合成员（1280，任务 24） |
 | 杂草 | YOLOX-Dinov3 Small | `weed/dinov3_small/best_ckpt.pth` | 高精度融合成员 |
 | 杂草 | YOLOX-Dinov3 Base | `weed/dinov3_base/best_ckpt.pth` | 高精度融合成员 |
+| 杂草 | D-FINE-S | `weed/dfine_s/best.onnx` | 高精度融合成员（ONNX 导出，40.4 MB） |
 | 害虫 | YOLO11m | `pest/yolo11m/best.pt` | 快速单模型 / 融合成员 |
 | 害虫 | YOLO11l | `pest/yolo11l/best.pt` | 高精度融合成员 |
 | 害虫 | YOLO11s | `pest/yolo11s/best.pt` | 高精度融合成员 |
@@ -242,15 +243,17 @@ python -B scripts/verify_deployment.py --weed-image "test_images/weed/你的杂�
 
 ## 11. 指标
 
-杂草（本地验证集：787 张图像、2596 个标注框；五模型 WBF + 任务 26 一致性调制）：
+杂草（本地验证集：787 张图像、2596 个标注框；六模型 WBF + 任务 30 D-FINE-S 集成）：
 
 ```text
-mAP50 = 0.8399
-mAP50-95 = 0.4623
-AP75 = 0.4466
+mAP50 = 0.8403
+mAP50-95 = 0.4709
+AP75 = 0.4683
+AP_medium = 0.2326
+AR@100 = 0.6264
 ```
 
-（历史对照：任务 24 max 尺度下为 0.8232 / 0.4525 / 0.4357。）
+（历史对照：五模型一致性调制下为 0.8399 / 0.4623 / 0.4466；任务 24 max 尺度下为 0.8232 / 0.4525 / 0.4357。）
 
 害虫（本地验证集：4330 张图像，refined classwise WBF）：
 

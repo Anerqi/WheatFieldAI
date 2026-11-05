@@ -76,6 +76,10 @@ def main() -> int:
             cfg["weed"]["paths"][
                 "yolox_base_weights"
             ],
+        "weed_dfine_s":
+            cfg["weed"]["paths"][
+                "dfine_onnx"
+            ],
         "pest_yolo11m":
             cfg["pest"]["paths"][
                 "yolo11m_weights"

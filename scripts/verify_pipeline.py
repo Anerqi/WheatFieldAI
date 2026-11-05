@@ -114,9 +114,13 @@ def main():
     wr = infer_weed_single_image(weed_img, cfg, manager, mode="fusion")
     weed_total_ms = round((time.time() - t0) * 1000, 1)
     check("杂草融合返回 ok", wr["status"] == "ok")
-    check("杂草融合使用五模型",
-          wr["models_used"] == ["YOLO11s", "YOLO11s-box8", "YOLO11s-1280",
-                                "YOLOX-Dinov3 Small", "YOLOX-Dinov3 Base"])
+    # 任务 30：模型清单不再是硬编码五模型，而是按 config 的 dfine.enabled 推导
+    _expected_models = ["YOLO11s", "YOLO11s-box8", "YOLO11s-1280",
+                        "YOLOX-Dinov3 Small", "YOLOX-Dinov3 Base"]
+    if (cfg["weed"].get("dfine") or {}).get("enabled"):
+        _expected_models.append("D-FINE-S")
+    check(f"杂草融合模型清单与 config 一致（{len(_expected_models)} 支）",
+          wr["models_used"] == _expected_models, str(wr["models_used"]))
     check("杂草融合检出框 > 0", wr["num_detections"] > 0, f"{wr['num_detections']} 框")
     check("杂草类别 Obonianghao",
           all(d["category_name"] == "Obonianghao" for d in wr["detections"]))
@@ -126,13 +130,14 @@ def main():
     # 参数取值本身由 tests/test_wbf_score_mode.py 与 tests/test_decision.py 覆盖；
     # 这里要抓的是「推理没有按配置执行」这类回归。
     _wbf_cfg = cfg["weed"]["wbf"]
-    check("杂草 WBF 参数与 config.yaml 一致（任务26：iou/skip/conf_type/score_mode/等权）",
-          wr["wbf_params"]
+    check("杂草 WBF 参数与 config.yaml 一致（iou/skip/conf_type/score_mode/weights）",
+          bool(wr["wbf_params"])
           and wr["wbf_params"]["iou_thr"] == _wbf_cfg["iou_thr"]
           and wr["wbf_params"]["skip_box_thr"] == _wbf_cfg["skip_box_thr"]
           and wr["wbf_params"]["conf_type"] == _wbf_cfg["conf_type"]
           and wr["wbf_params"]["score_mode"] == _wbf_cfg.get("score_mode", "raw")
-          and wr["wbf_params"]["weights"] == [1.0, 1.0, 1.0, 1.0, 1.0])
+          and wr["wbf_params"]["weights"] == list(_wbf_cfg["weights"]),
+          f"actual={wr['wbf_params']}")
     check("杂草融合首载 + 纯推理耗时已记录",
           wr["model_load_ms"] > 0 and wr["net_inference_ms"] > 0,
           f"load={wr['model_load_ms']}ms net={wr['net_inference_ms']}ms total={weed_total_ms}ms")

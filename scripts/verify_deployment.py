@@ -99,18 +99,18 @@ def verify_weed_fusion(
         isinstance(params, dict),
         "杂草融合必须返回 wbf_params。",
     )
-    assert_true(
-        params.get("iou_thr") == 0.65,
-        f"杂草 WBF iou_thr 错误：{params.get('iou_thr')}",
-    )
-    assert_true(
-        params.get("skip_box_thr") == 0.01,
-        f"杂草 WBF skip_box_thr 错误：{params.get('skip_box_thr')}",
-    )
-    # 任务 26：conf_type 由 max 改为 avg，并新增 score_mode=geo_agree 一致性调制。
-    # 断言「落在合法取值内且与配置一致」，避免调参时验证脚本失效。
+    # 任务 30：WBF 参数一律与 config.yaml 比对（不再硬编码 0.65 / 五模型等权）。
+    # 取值本身的正确性由 config 校准记录与单测覆盖；这里抓的是「推理没按配置执行」的回归。
     _cfg = load_config(ROOT / "config.yaml")
     _wbf = _cfg["weed"]["wbf"]
+    assert_true(
+        params.get("iou_thr") == _wbf["iou_thr"],
+        f"杂草 WBF iou_thr 错误：{params.get('iou_thr')}（配置 {_wbf['iou_thr']}）",
+    )
+    assert_true(
+        params.get("skip_box_thr") == _wbf["skip_box_thr"],
+        f"杂草 WBF skip_box_thr 错误：{params.get('skip_box_thr')}（配置 {_wbf['skip_box_thr']}）",
+    )
     assert_true(
         params.get("conf_type") == _wbf["conf_type"],
         f"杂草 WBF conf_type 错误：{params.get('conf_type')}（配置 {_wbf['conf_type']}）",
@@ -120,8 +120,8 @@ def verify_weed_fusion(
         f"杂草 WBF score_mode 错误：{params.get('score_mode')}（配置 {_wbf.get('score_mode', 'raw')}）",
     )
     assert_true(
-        params.get("weights") == [1.0, 1.0, 1.0, 1.0, 1.0],
-        f"杂草 WBF weights 错误：{params.get('weights')}",
+        params.get("weights") == list(_wbf["weights"]),
+        f"杂草 WBF weights 错误：{params.get('weights')}（配置 {_wbf['weights']}）",
     )
 
     print_result(

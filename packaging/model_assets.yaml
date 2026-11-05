@@ -28,6 +28,12 @@ assets:
     filename: best_ckpt.pth
     nominal_size_mb: 567.3
     sha256_prefix: "444430afbddb"
+  # 任务 30：D-FINE-S 第 6 支成员（ONNX）
+  - id: weed_dfine_s
+    task: weed
+    filename: best.onnx
+    nominal_size_mb: 40.4
+    sha256_prefix: "572040a21984"
   - id: pest_yolo11m
     task: pest
     filename: best.pt

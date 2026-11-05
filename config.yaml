@@ -24,6 +24,8 @@ weed:
     yolox_small_weights: "models/weed/dinov3_small/best_ckpt.pth"
     # YOLOX-Dinov3 Base（任务 04/05/06 验证）
     yolox_base_weights: "models/weed/dinov3_base/best_ckpt.pth"
+    # D-FINE-S（任务 30 新增，第 6 支成员；ONNX 导出，见 src/dfine_onnx.py 与任务 29 dfine/STEP1_ONNX.md）
+    dfine_onnx: "models/weed/dfine_s/best.onnx"
 
   # 推理参数（与任务 03/05 评测一致，界面不暴露）
   inference:
@@ -36,16 +38,28 @@ weed:
     yolox_nms: 0.65
     yolox_imgsz: 640
 
-  # 业务决策阈值（任务 26 在 geo_agree 分数尺度上重新校准：
-  #   F1 最优 0.390 -> 取 0.40，原 val P=0.780/R=0.790/F1=0.785
-  #   对照：任务 24 的 max 尺度 0.50 为 P=0.729/R=0.801/F1=0.763）
-  decision_conf: 0.40
+  # 业务决策阈值（任务 30 在「六模型 + iou_thr 0.68」的新分数尺度上重新校准：
+  #   F1 最优 0.44 -> 取 0.44，val P=0.780/R=0.788/F1=0.784（校准脚本：任务输出/30_.../calibrate_decision_conf.py）
+  #   历史：任务 26 在五模型 geo_agree 尺度上取 0.40（F1 0.774@0.40，最优 0.39=F1 0.785）；
+  #        任务 24 的 max 尺度 0.50 为 P=0.729/R=0.801/F1=0.763
+  decision_conf: 0.44
 
-  # WBF 融合参数：五模型等权（任务 24 融合候选实验；任务 26 调整分数聚合）
+  # D-FINE-S 第 6 支成员（任务 30）。enabled: false 可一键退回五模型（行为与任务 26 完全一致）。
+  # score_thr=0.05 是关键：D-FINE 每图输出 300 个 query，不压密度会把融合框数从 23.8k 冲到 78.3k、mAP 反降。
+  dfine:
+    enabled: true
+    onnx_path: "models/weed/dfine_s/best.onnx"
+    score_thr: 0.05
+    imgsz: 960
+    device: "auto"
+
+  # WBF 融合参数：六模型等权（任务 30 加入 D-FINE-S）
   # 顺序必须与 weed_inference.py 的 boxes_list 一致：
-  # YOLO11s : YOLO11s-box8 : YOLO11s-1280 : YOLOX Small : YOLOX Base
+  # YOLO11s : YOLO11s-box8 : YOLO11s-1280 : YOLOX Small : YOLOX Base : D-FINE-S
+  # 任务 30 依据：加入 D-FINE 后，iou_thr 0.68 与六模型组合给出 mAP50-95 0.470912 / AP75 0.468149
+  # （五模型 + 0.65 为 0.462338 / 0.446606；配对 bootstrap 六项 CI 均排除 0）。
   wbf:
-    iou_thr: 0.65
+    iou_thr: 0.68
     skip_box_thr: 0.01
     conf_type: "avg"          # 任务 26：由 max 改为 avg（配合 score_mode 使用）
     # 任务 26：把「簇内一致数」并入排序的有界几何调制
@@ -54,7 +68,7 @@ weed:
     score_mode: "geo_agree"
     geo_beta: 0.412
     geo_cap: 8
-    weights: [1.0, 1.0, 1.0, 1.0, 1.0]
+    weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
   # 类别映射（唯一真源：CONTEXT.md）
   class_mapping:

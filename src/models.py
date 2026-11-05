@@ -5,7 +5,7 @@ models.py
 双任务模型管理器（任务 08）。
 
 - 杂草侧：YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280（1280）
-  + YOLOX-Dinov3 Small + YOLOX-Dinov3 Base（五模型 WBF）
+  + YOLOX-Dinov3 Small + YOLOX-Dinov3 Base（五模型 WBF，任务 24）
 - 害虫侧：YOLO11m + YOLO11l + YOLO11s（提交包权重）
 
 显存策略（记录在案）：
@@ -44,6 +44,7 @@ class DualModelManager:
         # 防止会话 A 切换任务时卸载会话 B 正在使用的模型（RLock 允许嵌套调用）
         self._lock = threading.RLock()
         # 杂草模型
+        self._dfine = None  # 任务 30：D-FINE-S ONNX（第 6 支成员，可选）
         self._yolo11 = None
         self._yolo11_aux = {}  # variant -> model（box8 / 1280）
         self._yolox = {}  # size -> model
@@ -83,6 +84,10 @@ class DualModelManager:
             required.append(("yolo11_1280_weights", weed_paths["yolo11_1280_weights"]))
             required.append(("yolox_small_weights", weed_paths["yolox_small_weights"]))
             required.append(("yolox_base_weights", weed_paths["yolox_base_weights"]))
+            # 任务 30：D-FINE 为可选第 6 支成员；缺失时不算 missing（自动退回五模型）
+            dfine_cfg = (self.cfg.get("weed", {}).get("dfine") or {})
+            if dfine_cfg.get("enabled") and weed_paths.get("dfine_onnx"):
+                required.append(("dfine_onnx(可选)", weed_paths["dfine_onnx"]))
         missing = [f"{name}: {p}" for name, p in required if not os.path.isfile(p)]
         return missing, not missing
 
@@ -127,6 +132,19 @@ class DualModelManager:
     # ------------------------------------------------------------------
     # 害虫模型加载
     # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # 杂草第 6 支成员：D-FINE-S（ONNX，任务 30）
+    # ------------------------------------------------------------------
+    def get_dfine_onnx(self):
+        """按需构造 D-FINE ONNX 推理器；未启用/权重缺失返回 None（自动退回五模型）。"""
+        if self._dfine is None:
+            try:
+                from dfine_onnx import build_from_config
+            except ImportError:  # 包内相对导入情形
+                from .dfine_onnx import build_from_config  # type: ignore
+            self._dfine = build_from_config(self.cfg.get("weed", {}))
+        return self._dfine
+
     def get_pest(self, key):
         return self._pest.get(key)
 
@@ -140,6 +158,7 @@ class DualModelManager:
         """释放全部缓存模型（任务切换/显存不足降级时调用）。"""
         with self._lock:
             self._yolo11 = None
+            self._dfine = None
             self._yolo11_aux = {}
             self._yolox = {}
             self._pest.release()
@@ -153,13 +172,17 @@ class DualModelManager:
         if task == "pest":
             return self._pest.models_in_use(mode)
         if mode == "fusion":
-            return [
+            names = [
                 "YOLO11s",
                 "YOLO11s-box8",
                 "YOLO11s-1280",
                 "YOLOX-Dinov3 Small",
                 "YOLOX-Dinov3 Base",
             ]
+            dfine_cfg = (self.cfg.get("weed", {}).get("dfine") or {})
+            if dfine_cfg.get("enabled") and self.cfg["weed"]["paths"].get("dfine_onnx"):
+                names.append("D-FINE-S")
+            return names
         return ["YOLO11s"]
 
 

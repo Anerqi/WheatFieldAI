@@ -107,11 +107,30 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
             boxes_list.append(b)
             scores_list.append(s)
 
-        # ---- WBF 融合（任务 24 五模型固定参数）----
+        # ---- D-FINE-S（任务 30，第 6 支成员，ONNX 推理）----
+        dfine_used = False
+        _t_d = time.time()
+        dfine_runner = weed_manager.get_dfine_onnx() if hasattr(weed_manager, "get_dfine_onnx") else None
+        # 首次构造含 ONNX 会话创建与 CUDA 上下文初始化（约十几秒），必须计入 load 而非净推理
+        if dfine_runner is not None and dfine_runner.available():
+            dfine_runner._ensure()
+        load_times["D-FINE-S_load"] = round((time.time() - _t_d) * 1000, 1)
+        if dfine_runner is not None and dfine_runner.available():
+            t0 = time.time()
+            b_df, s_df = dfine_runner.infer(img_bgr)
+            per_model_times["D-FINE-S"] = round((time.time() - t0) * 1000, 1)
+            boxes_list.append(b_df)
+            scores_list.append(s_df)
+            dfine_used = True
+
+        # ---- WBF 融合（任务 24 五模型；任务 30 起为六模型）----
         weights = list(wbf_cfg["weights"])
+        if len(weights) > len(boxes_list):
+            # 第 6 支成员不可用时（权重缺失/ONNX 依赖异常），按前 N 个权重退回，保持既有行为
+            weights = weights[: len(boxes_list)]
         if len(weights) != len(boxes_list):
             raise ValueError(
-                f"WBF weights 数量 {len(weights)} 与模型数 {len(boxes_list)} 不一致，"
+                f"WBF weights 数量 {len(weights)} 与参与模型数 {len(boxes_list)} 不一致，"
                 "请检查 config.yaml 的 weed.wbf.weights"
             )
         t0 = time.time()
@@ -135,6 +154,8 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
             "YOLOX-Dinov3 Small",
             "YOLOX-Dinov3 Base",
         ]
+        if dfine_used:
+            models_used.append("D-FINE-S")
         wbf_params = {
             "iou_thr": wbf_cfg["iou_thr"],
             "skip_box_thr": wbf_cfg["skip_box_thr"],
@@ -188,7 +209,10 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
     return {
         "status": "ok",
         "mode": mode,
-        "mode_display": "高精度融合（五模型 WBF）" if mode == "fusion" else "快速单模型（YOLO11s）",
+        "mode_display": (
+            ("高精度融合（六模型 WBF）" if len(models_used) >= 6 else "高精度融合（五模型 WBF）")
+            if mode == "fusion" else "快速单模型（YOLO11s）"
+        ),
         "models_used": models_used,
         "inference_time_ms": total_ms,
         "net_inference_ms": net_inference_ms,

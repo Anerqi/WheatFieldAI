@@ -79,8 +79,8 @@ class _FakePestManager:
 class DecisionConfTests(unittest.TestCase):
     def test_config_has_decision_conf(self):
         cfg = _cfg()
-        # 任务 26：geo_agree 分数尺度上重新校准，F1 最优 0.390 -> 取 0.40
-        self.assertEqual(get_decision_conf(cfg["weed"]), 0.40)
+        # 任务 30：六模型 + iou_thr 0.68 新尺度上重新校准，F1 最优 0.44 -> 取 0.44（任务 26 历史为 0.40）
+        self.assertEqual(get_decision_conf(cfg["weed"]), 0.44)
         self.assertEqual(get_decision_conf(cfg["pest"]), 0.30)
 
     def test_invalid_decision_conf_rejected(self):
