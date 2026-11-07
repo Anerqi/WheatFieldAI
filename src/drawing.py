@@ -4,7 +4,7 @@ drawing.py
 ==========
 通用标注图绘制（支持杂草 1 类和害虫 32 类）。
 
-- 杂草检测框：绿色（统一颜色）
+- 杂草检测框：品红 #FF2D95（统一颜色；草地是绿色，绿框与背景同色相会糊在叶丛里）
 - 害虫检测框：按 class_id 分配 32 种高区分度颜色（HSV 色相黄金角采样）
 - 标签：类别名 + 置信度
 - 支持密集图限制绘制框数（max_boxes）
@@ -37,8 +37,9 @@ def _detection_color(detection):
     if "class_id" in detection:
         idx = int(detection["class_id"]) % 32
         return _PEST_PALETTE[idx]
-    # 杂草：绿色
-    return (0, 180, 0)
+    # 杂草：品红 #FF2D95（BGR）。草地/作物是绿色，绿框与背景同色相，框线会糊进叶丛；
+    # 品红与绿色近乎互补，对比最强，且在红绿色弱下仍可与绿色区分。
+    return (149, 45, 255)
 
 
 def _detection_label(detection):

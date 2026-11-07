@@ -79,13 +79,34 @@ def hazard_scale_html(hazard, task="weed", decision_conf=None):
     未检出（severity == 0）时使用中性状态：灰化轨道 + 空心指针，不判定等级。
     """
     hazard = hazard or {}
+    # 未填写拍摄区域面积：不渲染刻度、不输出轻/中/重。
+    # 仅在 displayable 显式为 False 时生效；字段缺失仍走旧像素口径，兼容旧结果与单测夹具。
+    if hazard.get("displayable") is False:
+        # 0 检出保持既有的中性「未检出」态（R10），不吞掉无障碍语义
+        if int(hazard_scale_value(hazard.get("num_detections"), 0)) == 0 or hazard.get("none"):
+            return ('<div class="scale neutral"><div class="scale-state neutral">'
+                    '未检出：中性状态，不判定危害等级</div></div>')
+        return (
+            '<div class="scale neutral"><div class="scale-state neutral">'
+            '未填写拍摄区域面积，暂不评估危害等级</div>'
+            '<div class="scale-caption">填写面积后按「正式框数 ÷ 实际面积」估算密度并分级；'
+            '阈值为未经农学专家校准的演示值。</div></div>'
+        )
     thresholds = hazard.get("thresholds") or {}
-    light_max = hazard_scale_value(thresholds.get("light_max_per_mp"), 10.0)
-    medium_max = hazard_scale_value(thresholds.get("medium_max_per_mp"), 40.0)
+    by_area = hazard.get("assessment_basis") == "field_area"
+    if by_area:
+        light_max = hazard_scale_value(thresholds.get("light_max_per_m2"), 0.5)
+        medium_max = hazard_scale_value(thresholds.get("medium_max_per_m2"), 2.0)
+        density = hazard_scale_value(hazard.get("density_per_m2"), 0.0)
+        unit = "个/㎡"
+    else:
+        light_max = hazard_scale_value(thresholds.get("light_max_per_mp"), 10.0)
+        medium_max = hazard_scale_value(thresholds.get("medium_max_per_mp"), 40.0)
+        density = hazard_scale_value(hazard.get("density_per_mp"), 0.0)
+        unit = "个/百万像素"
     if medium_max <= light_max:
         medium_max = light_max * 2.0
 
-    density = hazard_scale_value(hazard.get("density_per_mp"), 0.0)
     severity = int(hazard_scale_value(hazard.get("severity"), 0))
     neutral = severity == 0 or not hazard
 
@@ -95,9 +116,9 @@ def hazard_scale_html(hazard, task="weed", decision_conf=None):
     heavy_w = max(100.0 - light_w - medium_w, 0.0)
     marker_left = min(max(density / scale_max * 100.0, 0.0), 99.0)
 
-    unit = "个/百万像素"
     caption = (
         f'<div class="scale-caption">当前密度 <b>{density:.2f}</b> {unit}'
+        + (f' · 拍摄面积 {hazard_scale_value(hazard.get("field_area_m2"), 0.0):.2f} ㎡' if by_area else "")
         + (f" · 业务阈值 decision_conf = {fmt_num(decision_conf, 2)}" if decision_conf is not None else "")
         + "</div>"
     )
@@ -254,7 +275,7 @@ def component_css():
 .scale{font-size:12px;color:var(--body)}
 .scale-track{position:relative;display:flex;height:26px;border-radius:6px;overflow:hidden;
 border:1px solid var(--hair);background:#efeae1}
-.seg{display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.1em;
+.seg{display:flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:0;
 color:#fff;overflow:hidden;white-space:nowrap}
 .seg.light{background:#8fae94}.seg.medium{background:#d3a862}.seg.heavy{background:#c07a63}
 .scale.neutral .seg{background:#dcd7cd;color:#8a867e}
@@ -293,7 +314,7 @@ font-size:11px;color:var(--body);background:var(--paper);margin:0 6px 6px 0}
 .badge.heavy{color:var(--danger);border-color:#e3c3b9;background:#faeeea}
 .badge.none{color:var(--muted);border-color:var(--hair);background:var(--paper)}
 table.tbl{width:100%;border-collapse:collapse;font-size:12px}
-table.tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;letter-spacing:.06em;
+table.tbl th{text-align:left;font-weight:600;color:var(--muted);font-size:11px;letter-spacing:0;
 border-bottom:1px solid var(--hair);padding:7px 8px;white-space:nowrap}
 table.tbl td{padding:7px 8px;border-bottom:1px solid var(--hair-soft);color:var(--body);vertical-align:top}
 table.tbl td.num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
@@ -313,9 +334,9 @@ body{margin:0;background:var(--paper);color:var(--ink);
 font-family:"Segoe UI","Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif;
 line-height:1.6;-webkit-font-smoothing:antialiased}
 .page{max-width:1040px;margin:0 auto;padding:44px 32px 64px}
-h1,h2,h3{font-family:Georgia,"Times New Roman","Songti SC","Noto Serif SC","Source Han Serif SC",serif;
-font-weight:400;letter-spacing:-.01em;margin:0;color:var(--ink)}
-.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--coral-deep);font-weight:600}
+h1,h2,h3{font-family:"SmileySans","Smiley Sans","得意黑","PingFang SC","Microsoft YaHei",sans-serif;
+font-weight:600;letter-spacing:0;margin:0;color:var(--ink)}
+.kicker{font-family:"JetBrains Mono","Roboto Mono",Consolas,monospace;font-size:11px;letter-spacing:.02em;color:var(--coral-deep);font-weight:500}
 .rule{width:56px;height:2px;background:var(--coral);margin:14px 0 16px}
 .masthead{border-bottom:1px solid var(--hair);padding-bottom:22px;margin-bottom:26px}
 .masthead h1{font-size:32px;line-height:1.22;margin-bottom:10px;overflow-wrap:anywhere}
@@ -323,8 +344,8 @@ font-weight:400;letter-spacing:-.01em;margin:0;color:var(--ink)}
 .meta em{font-style:normal;color:var(--hair);margin:0 8px}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:22px}
 .metric{background:var(--card);border:1px solid var(--hair);border-radius:10px;padding:14px 16px}
-.metric .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.metric .v{font-size:27px;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums}
+.metric .k{font-size:12px;letter-spacing:0;color:var(--muted)}
+.metric .v{font-family:"JetBrains Mono","Roboto Mono",Consolas,monospace;font-size:24px;font-weight:600;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums}
 .metric .u{font-size:11px;color:var(--muted);margin-top:2px}
 figure.plate{margin:0 0 22px;background:var(--card);border:1px solid var(--hair);
 border-radius:12px;padding:12px}
@@ -337,7 +358,7 @@ figcaption{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5}
 .grid2 .panel{margin-bottom:0}
 .advice{white-space:pre-line;font-size:14px;line-height:1.78;color:var(--body)}
 .advice-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
-.advice-level{font-family:Georgia,"Songti SC",serif;font-size:17px}
+.advice-level{font-family:"PingFang SC","Microsoft YaHei",sans-serif;font-size:17px;font-weight:600}
 .kv{display:grid;grid-template-columns:170px minmax(0,1fr);gap:8px 16px;font-size:12.5px}
 .kv-k{color:var(--muted)}
 .kv-v{color:var(--ink);overflow-wrap:anywhere}

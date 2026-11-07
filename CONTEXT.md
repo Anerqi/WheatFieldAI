@@ -2,7 +2,7 @@
 
 [返回主工程说明](../README.md) · [项目 Wiki](../wiki/README.md) · [项目总索引](../INDEX.md)
 
-> **重建说明**：`config.yaml` 与部分历史报告引用“项目根 `CONTEXT.md` 为术语唯一真源”，但原文件在工作区中不存在。本文件于 **2026-10-28** 依据当前代码、配置与已验收任务报告重建，作为**当前工程术语与口径的索引**，不是对已丢失原文的逐字恢复。若与代码/配置冲突，以代码与配置为准。
+> **重建说明**：`config.yaml` 与部分历史报告引用“项目根 `CONTEXT.md` 为术语唯一真源”，但原文件在工作区中不存在。本文件于 **2026-10-28** 依据当前代码、配置与已验收任务报告重建，**2026-11-07 对齐任务 30 现行口径（六模型 + D-FINE-S、`decision_conf` 0.44、127 单测）**，作为**当前工程术语与口径的索引**，不是对已丢失原文的逐字恢复。若与代码/配置冲突，以代码与配置为准。
 
 ## 1. 项目与任务
 
@@ -16,7 +16,7 @@
 
 | 任务 | 模式 | 模型组合 | 关键参数 |
 |---|---|---|---|
-| 杂草 | 高精度融合 `fusion` | YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small + YOLOX-Dinov3 Base + 五模型 WBF | YOLO conf 0.001 / iou 0.70；960/960/1280；YOLOX conf 0.01 / nms 0.65 / imgsz 640；WBF iou 0.65 / skip 0.01 / conf max / 权重 1:1:1:1:1 |
+| 杂草 | 高精度融合 `fusion` | YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small + YOLOX-Dinov3 Base + D-FINE-S（ONNX，960；任务 30 第 6 支）+ 六模型 WBF | YOLO conf 0.001 / iou 0.70；960/960/1280；YOLOX conf 0.01 / nms 0.65 / imgsz 640；D-FINE score_thr 0.05；WBF iou **0.68** / skip 0.01 / conf `avg` / score_mode `geo_agree` / 六等权 |
 | 杂草 | 快速单模型 `yolo11` | YOLO11s | 同上 YOLO 参数 |
 | 害虫 | 高精度融合 `fusion` | YOLO11m + YOLO11l + YOLO11s + refined classwise WBF | conf 0.001 / iou 0.70 / imgsz 960；逐类参数见 classwise JSON |
 | 害虫 | 快速单模型 `fast` | YOLO11m | 同上 |
@@ -27,15 +27,16 @@
 
 ```yaml
 weed:
-  decision_conf: 0.40
+  decision_conf: 0.44
 pest:
   decision_conf: 0.30
 ```
 
-- 只有置信度 ≥ `decision_conf` 的检测参与计数、类别统计、危害等级与 JSON `detections`；
+- 只有置信度 ≥ `decision_conf` 的检测参与计数、类别统计、密度估算与 JSON `detections`；
 - 低于阈值的检测保留在 `low_conf_candidates`，页面可勾选查看；
-- 不影响 mAP 评测；杂草 0.40 依据任务 26 在 `geo_agree` 分数尺度上的 F1 校准（最优 0.390），害虫 0.30 依据任务 22；
-- 0.40/0.30 是本地验证集初始值（杂草基于五模型融合校准），正式应用前需按现场数据复核。
+- 不影响 mAP 评测；杂草 **0.44** 依据任务 30 在「六模型 + `iou_thr` 0.68」新分数尺度上的 F1 校准（F1 最优 0.44，val P=0.780 / R=0.788 / F1=0.784），害虫 0.30 依据任务 22；
+- 历史值：任务 26 五模型 `geo_agree` 尺度取 0.40（F1 0.774，最优 0.39），任务 24 `max` 尺度取 0.50（F1 0.763）；
+- 0.44/0.30 是本地验证集初始值，正式应用前需按现场数据复核。
 
 ### 2.2 融合分数的一致性调制（任务 26）
 
@@ -80,7 +81,8 @@ num_classes = 1
 |---|---:|---:|---:|---:|
 | 杂草 YOLO11s 单模型 | 0.803197 | 0.429190 | 0.404958 | 0.596263 |
 | 杂草 YOLOX-Dinov3 Small 单模型 | 0.808880 | 0.402419 | 0.352460 | 0.516564 |
-| **杂草五模型 WBF（任务26 一致性调制）** | **0.8399** | **0.4623** | **0.4466** | **0.6101** |
+| **杂草六模型 WBF + D-FINE-S + 一致性调制（任务 30，现行）** | **0.8403** | **0.4709** | **0.4683** | **0.6263** |
+| 杂草五模型 WBF（任务 26，历史口径） | 0.8399 | 0.4623 | 0.4466 | 0.6101 |
 | 害虫 YOLO11m 单模型 | 0.78069 | 0.50116 | — | — |
 | 害虫 YOLO11l 单模型 | 0.77872 | 0.49824 | — | — |
 | 害虫 YOLO11s 单模型 | 0.75735 | 0.48031 | — | — |
@@ -90,11 +92,13 @@ num_classes = 1
 
 ## 5. 危害等级与建议
 
-- 单位：每百万像素检测框数（detections per megapixel, `det_per_mp`）。
-- 杂草：密度 < 10 为轻；10–40 为中；≥ 40 为重。
-- 害虫：密度 < 5 且主要类别 ≤ 2 为轻；密度 5–15 或主要类别 3–5 为中；密度 ≥ 15 或主要类别 ≥ 6 为重。
+- **口径**：按用户填写的「实际拍摄区域面积」计算，`密度 = 正式检测框数 ÷ 面积`，单位 **个/㎡**（`det_per_m2`）。面积可填 ㎡ 或亩（1 亩 = 666.6667 ㎡，内部统一换算为 ㎡）。
+- **默认不填写面积 → 不显示危害等级、密度与防治建议**：主工作台隐藏 KPI 危害 chip、危害卡、防治建议卡与批量汇总的危害列。
+- 杂草：密度 < 0.5 为轻；0.5–2 为中；≥ 2 为重。害虫另有主要类别数 2 / 5 的升级规则。
+- **以上阈值为占位演示值，无农学依据、未经农学专家校准**，不构成防治处方或正式农业决策依据；正式应用前须按田间数据重新标定并经专家审核。
+- 历史口径 `det_per_mp`（每百万像素检测框数，杂草 10 / 40、害虫 5 / 15 + 类别数 2 / 5）仅保留在导出字段 `density_per_mp` 与 `config.yaml` 的 `hazard.weed` / `hazard.pest` 中用于兼容，**不再用于页面分级**。
 - 建议只提供巡查/复核/设备检查/咨询农技人员等方向性内容；**不提供农药名称、剂量、浓度、施用时间、施用次数、安全间隔期**。
-- 阈值与建议文本在 [config.yaml](config.yaml) 的 `hazard` / `advice` 段；修改需同步更新文档与测试。
+- 新口径阈值与建议文本在 [config.yaml](config.yaml) 的 `hazard.field_area` / `advice` 段，算法在 [src/hazard.py](src/hazard.py)；修改需同步更新文档与测试。
 
 ## 6. 上传与运行
 
@@ -115,6 +119,9 @@ num_classes = 1
 | 害虫 YOLO11m | `models/pest/yolo11m/best.pt` | 121.0 MB |
 | 害虫 YOLO11l | `models/pest/yolo11l/best.pt` | 152.8 MB |
 | 害虫 YOLO11s | `models/pest/yolo11s/best.pt` | 19.3 MB |
+| 杂草 D-FINE-S（ONNX，第 6 支） | `models/weed/dfine_s/best.onnx` | 40.4 MB |
+
+九套资产合计约 1,203.8 MB；`python -B packaging/check_models.py` 实测 missing=0 / invalid=0。
 
 SHA-256 前 12 位与检查方法见 [packaging/model_assets.yaml](packaging/model_assets.yaml) 与 [packaging/check_models.py](packaging/check_models.py)。
 
@@ -126,7 +133,8 @@ SHA-256 前 12 位与检查方法见 [packaging/model_assets.yaml](packaging/mod
 | `src/pest_wbf.py` | 害虫提交包 `export_ensemble_zip.py` | refined classwise WBF，逐字节复制并适配坐标空间 |
 | `src/yolox_inference.py` | 任务 02/03 推理与统一评测脚本 | 预处理、解码、后处理、反 letterbox |
 | `src/model_config.py` | 任务 05 YOLOX-Dinov3 结构重建 | Small/Base 结构参数化 |
-| `src/weed_inference.py` | 任务 07 `src/inference.py` | 仅适配双任务配置键；接入 decision_conf 业务过滤 |
+| `src/weed_inference.py` | 任务 07 `src/inference.py` | 仅适配双任务配置键；接入 decision_conf 业务过滤；任务 30 增加 D-FINE-S 第 6 路（缺成员时自动退回五模型） |
+| `src/dfine_onnx.py` | 任务 30 新增 | D-FINE-S ONNX 推理封装（仅依赖 numpy/PIL/onnxruntime） |
 | `src/decision.py` | 2026-10-28 业务阈值校准 | 决策阈值读取、检测拆分、置信度统计与类别计数 |
 | `src/models.py` / `pest_models.py` | 任务 08 | 双任务模型管理与显存策略 |
 | `src/hazard.py` / `advice.py` | 任务 07/08 | 规则原型，配置驱动 |

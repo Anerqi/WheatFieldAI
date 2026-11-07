@@ -113,13 +113,29 @@ def is_no_detection(result):
     return int(result.get("num_detections") or 0) == 0 or bool(hazard.get("none"))
 
 
+def hazard_visible(result):
+    """是否展示严重程度：仅当已按实际拍摄面积完成重算（displayable=True）时为 True。
+
+    ``displayable`` 字段缺失（旧结果、独立推理入口、单测夹具）一律按 False 处理，
+    对应「默认不填写拍摄面积 → 默认不显示危害等级与防治建议」。
+    """
+    return (result.get("hazard") or {}).get("displayable") is True
+
+
 def hazard_display(result):
-    """危害等级展示文本：未检出时统一显示「未检出」，否则显示规则标签。"""
+    """危害等级展示文本：未检出时统一显示「未检出」，否则显示规则标签。
+
+    兼容边界：只在 ``displayable`` **显式为 False** 时返回「—」；字段缺失时保持
+    原有行为，避免旧结果与既有单测夹具出现回归（与 hazard_visible 的严格判断分开）。
+    """
     if not result:
         return "—"
-    if is_no_detection(result):
-        return "未检出"
     hazard = result.get("hazard") or {}
+    if is_no_detection(result):
+        # 0 检出的「未检出」是中性状态、不是严重程度，优先保留（R10）
+        return "未检出"
+    if hazard.get("displayable") is False:
+        return "—"
     return str(hazard.get("label") or "—")
 
 
@@ -233,7 +249,11 @@ def build_result_payload(filename, result, task_label):
         "wbf_params": result["wbf_params"],
         "class_mapping": result["class_mapping"],
         "device": result["device"],
-        "note": "本 JSON 为原型系统输出，危害等级与防治建议需农学专家审核。",
+        "note": (
+            "本 JSON 为原型系统输出；未填写拍摄区域面积，危害等级与防治建议未计算，相关字段保留为兼容占位。"
+            if (result.get("hazard") or {}).get("displayable") is False
+            else "本 JSON 为原型系统输出，危害等级与防治建议需农学专家审核。"
+        ),
     }
 
 

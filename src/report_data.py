@@ -90,6 +90,10 @@ def default_eval_paths(root=None) -> dict:
     task22 = root / "任务输出" / "22_decision_conf阈值校准" / "results"
     app_root = root / "WheatFieldAI"
     return {
+        "six_model_app": _first_existing([
+            app_root / "outputs" / "app_six_model" / "summary.json",
+            root / "任务输出" / "30_自研检测器变体_WFA-Det" / "outputs" / "app_six_model" / "summary.json",
+        ]),
         "five_model_app": _first_existing([
             task24 / "app_five_model" / "summary.json",
             app_root / "outputs" / "app_five_model" / "summary.json",
@@ -555,14 +559,21 @@ def hazard_label(result):
 
     复用 ``batch_summary.hazard_display`` 的判定（正式框数 0 或 hazard.none），
     避免报告页与主工作台出现两套“未检出 / 轻（未检出）”口径。
+    ``displayable`` 显式为 False（未填写拍摄面积）时统一输出中性「未评估」；
+    字段缺失时保持旧行为，避免旧结果与单测夹具回归。
     """
     if not isinstance(result, dict):
         return "—"
+    hazard = result.get("hazard") or {}
+    # 0 检出的「未检出」是中性状态、不是严重程度，优先保留（R10）
+    if int(_to_float(result.get("num_detections")) or 0) == 0 or hazard.get("none"):
+        return "未检出"
+    if hazard.get("displayable") is False:
+        return "未评估"
     from batch_summary import hazard_display  # 只读复用，不修改该模块
 
     label = hazard_display(result)
     if label == "—":
-        hazard = result.get("hazard") or {}
         label = str(hazard.get("label") or hazard.get("level") or "—")
     return label
 
@@ -570,10 +581,10 @@ def hazard_label(result):
 def hazard_badge(result):
     """缩略图徽章：``{"badge": none|light|medium|heavy, "text": str}``。
 
-    未检出 / 失败使用中性 ``none``，不显示“轻（未检出）”这类误导性等级。
+    未检出 / 失败 / 未评估使用中性 ``none``，不显示误导性等级。
     """
     label = hazard_label(result)
-    if not isinstance(result, dict) or label in ("未检出", "—"):
+    if not isinstance(result, dict) or label in ("未检出", "—", "未评估"):
         return {"badge": "none", "text": label}
     level = (result.get("hazard") or {}).get("level")
     badge = {"轻": "light", "中": "medium", "重": "heavy"}.get(level or label, "none")
@@ -812,9 +823,29 @@ def _pick_block(node):
     }
 
 
-def _weed_models(five_app, fusion_candidates, val_v2):
-    """杂草模型指标表（融合 vs 单模型），每行注明来源。"""
+def _weed_models(six_app, five_app, fusion_candidates, val_v2):
+    """杂草模型指标表（融合 vs 单模型），每行注明来源。
+
+    six_app 为现行六模型（任务 30，含 D-FINE-S）的 app 真实管线复算；five_app 为
+    任务 24 五模型复算，保留为历史对照行。两者都存在时六模型排在前。
+    """
     rows = []
+
+    if isinstance(six_app, dict):
+        rows.append({
+            "key": "six_model_app",
+            "label": "六模型融合（app 真实管线）",
+            "group": "融合",
+            "original": _metric_block(six_app),
+            "v2": None,
+            "n_images": six_app.get("images"),
+            "source": "outputs/app_six_model/summary.json",
+            "note": (
+                f"任务 30 现行口径；{six_app.get('images')} 图全量复算，"
+                f"失败 {len(six_app.get('failures') or [])} 张，"
+                f"{six_app.get('seconds_per_image')} s/图，峰值显存 {six_app.get('peak_reserved_gb')} GB"
+            ),
+        })
 
     if isinstance(five_app, dict):
         rows.append({
@@ -826,7 +857,8 @@ def _weed_models(five_app, fusion_candidates, val_v2):
             "n_images": five_app.get("images"),
             "source": "outputs/app_five_model/summary.json",
             "note": (
-                f"{five_app.get('images')} 图全量复算，失败 {len(five_app.get('failures') or [])} 张，"
+                f"历史口径（任务 24，五模型）；{five_app.get('images')} 图全量复算，"
+                f"失败 {len(five_app.get('failures') or [])} 张，"
                 f"{five_app.get('seconds_per_image')} s/图，峰值显存 {five_app.get('peak_reserved_gb')} GB"
             ),
         })
@@ -980,25 +1012,33 @@ def load_model_performance(root=None, paths=None):
     names = load_class_names(paths.get("dataset_yaml", ""))
 
     weed_rows, five_members = _weed_models(
+        data.get("six_model_app"),
         data.get("five_model_app"),
         data.get("fusion_candidates"),
         data.get("val_v2_eval"),
     )
 
+    six_app = data.get("six_model_app") if isinstance(data.get("six_model_app"), dict) else None
     five_app = data.get("five_model_app") if isinstance(data.get("five_model_app"), dict) else None
+    # 现行 app 复算：优先六模型（任务 30），缺数据时退回五模型（任务 24）
+    app_app = six_app or five_app
+    app_run = {
+        "images": app_app.get("images"),
+        "failures": len(app_app.get("failures") or []) if app_app else None,
+        "seconds_per_image": app_app.get("seconds_per_image"),
+        "peak_reserved_gb": app_app.get("peak_reserved_gb"),
+        "decision_conf": app_app.get("decision_conf"),
+    } if app_app else None
+    app_members = (app_app.get("models_used") if app_app else None) or five_members
     weed = {
         "available": bool(weed_rows),
         "models": weed_rows,
-        # 优先用 app 复算 summary 的展示名（YOLO11s / YOLO11s-box8 ...），
-        # 其次退回 fusion_candidates 的内部成员键
-        "five_model_members": (five_app.get("models_used") if five_app else None) or five_members,
-        "five_model_run": {
-            "images": five_app.get("images"),
-            "failures": len(five_app.get("failures") or []) if five_app else None,
-            "seconds_per_image": five_app.get("seconds_per_image"),
-            "peak_reserved_gb": five_app.get("peak_reserved_gb"),
-            "decision_conf": five_app.get("decision_conf"),
-        } if five_app else None,
+        "app_variant": "six" if six_app else ("five" if five_app else None),
+        "app_members": app_members,
+        "app_run": app_run,
+        # 兼容旧字段名（页面与外部脚本曾按 five_model_* 取用）
+        "five_model_members": app_members,
+        "five_model_run": app_run,
         "fusion_candidates": _fusion_candidate_rows(data.get("fusion_candidates")),
     }
 
@@ -1015,7 +1055,7 @@ def load_model_performance(root=None, paths=None):
         "decision_conf": decision_conf,
         "class_names_available": bool(names),
         # 说明文字全部由已读取的 JSON 生成，取不到就省略；页面不再硬编码任何指标/规模
-        "notes": _performance_notes(five_app, decision_conf),
+        "notes": _performance_notes(app_app, decision_conf),
     }
 
 
@@ -1025,18 +1065,20 @@ def _fmt4(value):
     return "—" if value is None else f"{value:.4f}"
 
 
-def _performance_notes(five_app, decision_conf):
+def _performance_notes(app_app, decision_conf):
     """模型性能页脚注：只根据真实读取到的 JSON 生成，缺数据就省略对应句子。"""
     notes = [NO_INDEPENDENT_TEST_SET, VAL_V2_DISCLAIMER]
 
-    if isinstance(five_app, dict):
-        metrics = _metric_block(five_app) or {}
-        failures = five_app.get("failures")
+    if isinstance(app_app, dict):
+        metrics = _metric_block(app_app) or {}
+        failures = app_app.get("failures")
         fail_text = f"，失败 {len(failures)} 张" if isinstance(failures, list) else ""
-        images = five_app.get("images")
+        images = app_app.get("images")
         scale_text = f" {images} 图复算" if images else " 真实管线复算"
+        members = app_app.get("models_used") or []
+        variant = f"{len(members)} 模型" if members else "融合模型"
         notes.append(
-            f"五模型指标 {_fmt4(metrics.get('mAP50'))} / {_fmt4(metrics.get('mAP50_95'))} / "
+            f"{variant}指标 {_fmt4(metrics.get('mAP50'))} / {_fmt4(metrics.get('mAP50_95'))} / "
             f"{_fmt4(metrics.get('AP75'))}（mAP50 / mAP50-95 / AP75）来自 app 真实管线"
             f"{scale_text}{fail_text}。"
         )
