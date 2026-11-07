@@ -179,7 +179,8 @@ def _safe_path_text(text):
     """
     value = str(text)
     if _WINDOWS_ABS.match(value) or _POSIX_ABS.match(value):
-        return Path(value).name
+        # 用字符串切分而非 Path.name：Windows 反斜杠路径在 Linux CI 上也要能取到文件名
+        return value.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
     return value
 
 
@@ -227,11 +228,12 @@ def relative_path_text(path, root):
 
     页面提示与表格统一走这里，避免把 ``C:\\Users\\...`` 本机路径写进界面或导出文件。
     """
-    p = Path(path)
-    try:
-        return p.resolve().relative_to(Path(root).resolve()).as_posix()
-    except (ValueError, OSError):
-        return p.name
+    # 统一分隔符后再比较：Windows 风格路径在 POSIX 环境（CI）下也要能正确取相对段/文件名
+    raw = str(path).replace("\\", "/")
+    root_raw = str(root).replace("\\", "/").rstrip("/")
+    if root_raw and raw.startswith(root_raw + "/"):
+        return raw[len(root_raw) + 1:]
+    return raw.rstrip("/").rsplit("/", 1)[-1]
 
 
 # ----------------------------------------------------------------------
