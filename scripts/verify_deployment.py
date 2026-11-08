@@ -103,9 +103,12 @@ def verify_weed_fusion(
     # 取值本身的正确性由 config 校准记录与单测覆盖；这里抓的是「推理没按配置执行」的回归。
     _cfg = load_config(ROOT / "config.yaml")
     _wbf = _cfg["weed"]["wbf"]
+    # 六模型 / 五模型退回档的 iou_thr 分别校准，按本次实际参与的成员比对
+    from fusion_profile import resolve_fusion_profile
+    _prof = resolve_fusion_profile(_cfg["weed"], "D-FINE-S" in result.get("models_used", []))
     assert_true(
-        params.get("iou_thr") == _wbf["iou_thr"],
-        f"杂草 WBF iou_thr 错误：{params.get('iou_thr')}（配置 {_wbf['iou_thr']}）",
+        params.get("iou_thr") == _prof["iou_thr"],
+        f"杂草 WBF iou_thr 错误：{params.get('iou_thr')}（{_prof['profile']} 档 {_prof['iou_thr']}）",
     )
     assert_true(
         params.get("skip_box_thr") == _wbf["skip_box_thr"],
@@ -120,7 +123,7 @@ def verify_weed_fusion(
         f"杂草 WBF score_mode 错误：{params.get('score_mode')}（配置 {_wbf.get('score_mode', 'raw')}）",
     )
     assert_true(
-        params.get("weights") == list(_wbf["weights"]),
+        params.get("weights") == list(_wbf["weights"])[: len(result.get("models_used", []))],
         f"杂草 WBF weights 错误：{params.get('weights')}（配置 {_wbf['weights']}）",
     )
 

@@ -44,7 +44,8 @@ weed:
   #        任务 24 的 max 尺度 0.50 为 P=0.729/R=0.801/F1=0.763
   decision_conf: 0.44
 
-  # D-FINE-S 第 6 支成员（任务 30）。enabled: false 可一键退回五模型（行为与任务 26 完全一致）。
+  # D-FINE-S 第 6 支成员（任务 30）。enabled: false、权重缺失或 onnxruntime 未安装时退回五模型，
+  # 并自动切换到 wbf.five_model_fallback 的 iou_thr / decision_conf（与任务 26 一致）。
   # score_thr=0.05 是关键：D-FINE 每图输出 300 个 query，不压密度会把融合框数从 23.8k 冲到 78.3k、mAP 反降。
   dfine:
     enabled: true
@@ -69,6 +70,11 @@ weed:
     geo_beta: 0.412
     geo_cap: 8
     weights: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    # 五模型退回档（D-FINE-S 未参与时成套生效）：任务 26 在五模型 geo_agree 尺度上的校准值。
+    # 六模型的 iou_thr 0.68 / decision_conf 0.44 不适用于五模型分数尺度。
+    five_model_fallback:
+      iou_thr: 0.65
+      decision_conf: 0.40
 
   # 类别映射（唯一真源：CONTEXT.md）
   class_mapping:

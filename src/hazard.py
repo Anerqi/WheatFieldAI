@@ -270,7 +270,7 @@ def compute_field_hazard(num_detections, field_area_m2, hazard_cfg, task="weed",
 
 
 def apply_field_area(result, cfg, task="weed", field_area_value=None,
-                     field_area_unit="m2"):
+                     field_area_unit="m2", field_area_scope="single"):
     """把「实际拍摄面积」口径追加/覆盖到单图推理结果（幂等、不修改传入 result）。
 
     每次都从 result 的 num_detections/width/height/major_class_count 与 cfg
@@ -280,7 +280,11 @@ def apply_field_area(result, cfg, task="weed", field_area_value=None,
       advice 标记 computed=False 并保留原有 level/advice/disclaimer 文本。
     - 有有效面积：覆盖 level/label/severity/description 为新口径，但保留
       全部旧字段键（含 density_per_mp / image_area_mp / thresholds 的 per_mp 键）。
+    - field_area_scope：面积口径来源，"single"=单图填写，"batch_shared"=批量上传时
+      整批共用同一面积；写入 hazard["field_area_scope"]（无有效面积时为 None）。
     """
+    if field_area_scope not in ("single", "batch_shared"):
+        raise ValueError(f"field_area_scope 非法：{field_area_scope!r}")
     cfg = cfg or {}
     hazard_cfg = cfg.get("hazard") or {}
     advice_cfg = cfg.get("advice") or {}
@@ -313,6 +317,7 @@ def apply_field_area(result, cfg, task="weed", field_area_value=None,
         hz["field_area_value"] = None
         hz["field_area_unit"] = None
         hz["field_area_m2"] = None
+        hz["field_area_scope"] = None
         hz["density_per_m2"] = None
         hz["reason"] = "field_area_not_provided"
         hz["note"] = _NO_AREA_NOTE
@@ -332,6 +337,7 @@ def apply_field_area(result, cfg, task="weed", field_area_value=None,
         hz["field_area_value"] = field_area_value
         hz["field_area_unit"] = field_area_unit
         hz["field_area_m2"] = area_m2
+        hz["field_area_scope"] = field_area_scope
         hz["assessment_basis"] = "field_area"
 
         adv = get_advice(hz["level"], advice_cfg, task=task,

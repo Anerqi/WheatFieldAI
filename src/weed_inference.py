@@ -13,7 +13,9 @@ hazard / advice 模块并传入 task="weed"。
 - YOLO11s-box8 : conf=0.001, iou=0.70, imgsz=960（任务 24 融合第 2 路）
 - YOLO11s-1280 : conf=0.001, iou=0.70, imgsz=1280（任务 24 融合第 3 路）
 - YOLOX   : conf=0.01, nms=0.65, imgsz=640
-- WBF     : iou_thr=0.65, skip_box_thr=0.01, conf_type=max, weights=[1,1,1,1,1]
+- D-FINE-S: ONNX, score_thr=0.05, imgsz=960（任务 30 融合第 6 路，可选）
+- WBF     : 六模型 iou_thr=0.68 / 五模型退回 0.65；skip_box_thr=0.01；conf_type=avg；
+            score_mode=geo_agree（beta 0.412, cap 8）；等权（见 config.yaml weed.wbf）
 类别映射：YOLO 0 -> COCO 1 -> Obonianghao（唯一真源：CONTEXT.md）
 == 来源记录结束 ==
 """
@@ -30,6 +32,7 @@ from wbf import wbf_fuse_boxes
 from hazard import compute_hazard_level
 from advice import get_advice
 from decision import get_decision_conf, split_by_conf, confidence_stats
+from fusion_profile import resolve_fusion_profile
 
 
 def run_yolo11_single(model, img_bgr, device, conf, iou, img_size):
@@ -111,17 +114,21 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         dfine_used = False
         _t_d = time.time()
         dfine_runner = weed_manager.get_dfine_onnx() if hasattr(weed_manager, "get_dfine_onnx") else None
-        # 首次构造含 ONNX 会话创建与 CUDA 上下文初始化（约十几秒），必须计入 load 而非净推理
-        if dfine_runner is not None and dfine_runner.available():
-            dfine_runner._ensure()
+        # 首次构造含 ONNX 会话创建与 CUDA 上下文初始化（约十几秒），必须计入 load 而非净推理。
+        # 权重存在但 onnxruntime 缺失/会话创建失败时 _ensure() 为 False：按「未参与」退回五模型，
+        # 不能把空结果当第 6 路塞进 WBF（会稀释一致性调制并错用六模型阈值）。
+        dfine_ready = bool(
+            dfine_runner is not None and dfine_runner.available() and dfine_runner._ensure()
+        )
         load_times["D-FINE-S_load"] = round((time.time() - _t_d) * 1000, 1)
-        if dfine_runner is not None and dfine_runner.available():
+        if dfine_ready:
             t0 = time.time()
             b_df, s_df = dfine_runner.infer(img_bgr)
             per_model_times["D-FINE-S"] = round((time.time() - t0) * 1000, 1)
-            boxes_list.append(b_df)
-            scores_list.append(s_df)
-            dfine_used = True
+            if getattr(dfine_runner, "last_ok", True):
+                boxes_list.append(b_df)
+                scores_list.append(s_df)
+                dfine_used = True
 
         # ---- WBF 融合（任务 24 五模型；任务 30 起为六模型）----
         weights = list(wbf_cfg["weights"])
@@ -133,11 +140,13 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
                 f"WBF weights 数量 {len(weights)} 与参与模型数 {len(boxes_list)} 不一致，"
                 "请检查 config.yaml 的 weed.wbf.weights"
             )
+        # 六模型与五模型退回档的 iou_thr / decision_conf 分别校准，必须成套切换
+        fusion_profile = resolve_fusion_profile(weed_cfg, dfine_used)
         t0 = time.time()
         fused_boxes, fused_scores = wbf_fuse_boxes(
             boxes_list, scores_list,
             weights,
-            iou_thr=wbf_cfg["iou_thr"],
+            iou_thr=fusion_profile["iou_thr"],
             skip_box_thr=wbf_cfg["skip_box_thr"],
             conf_type=wbf_cfg["conf_type"],
             # 任务 26：一致性几何调制（旧配置无这些键时退回 raw，行为与任务 24 一致）
@@ -157,7 +166,8 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         if dfine_used:
             models_used.append("D-FINE-S")
         wbf_params = {
-            "iou_thr": wbf_cfg["iou_thr"],
+            "profile": fusion_profile["profile"],
+            "iou_thr": fusion_profile["iou_thr"],
             "skip_box_thr": wbf_cfg["skip_box_thr"],
             "conf_type": wbf_cfg["conf_type"],
             "score_mode": wbf_cfg.get("score_mode", "raw"),
@@ -175,6 +185,7 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         per_model_times["YOLO11s"] = round((time.time() - t0) * 1000, 1)
         models_used = ["YOLO11s"]
         wbf_params = None
+        fusion_profile = None
 
     pure_infer_ms = round((time.time() - t_start) * 1000, 1)
     model_load_ms = round(sum(load_times.values()), 1)
@@ -196,7 +207,9 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
     detections.sort(key=lambda d: d["confidence"], reverse=True)
 
     # ---- 业务口径：仅 >= decision_conf 的检测参与计数与危害等级 ----
-    decision_conf = get_decision_conf(weed_cfg)
+    decision_conf = (
+        fusion_profile["decision_conf"] if fusion_profile else get_decision_conf(weed_cfg)
+    )
     decided, candidates = split_by_conf(detections, decision_conf)
     mean_conf, max_decided_conf = confidence_stats(decided)  # 正式检测：均值 / 最高（空列表均为 None）
     _, max_conf = confidence_stats(detections)  # 最高置信度反映模型原始输出（含低置信候选，保留向后兼容）
@@ -232,6 +245,8 @@ def infer_weed_single_image(img_bgr, cfg, weed_manager, mode="fusion"):
         "hazard": hazard,
         "advice": advice,
         "wbf_params": wbf_params,
+        # D-FINE-S 已启用但未参与（权重或 onnxruntime 缺失）时为 True，页面据此提示
+        "fusion_degraded": bool(fusion_profile and fusion_profile["degraded"]),
         "class_mapping": {
             "yolo_class_id": YOLO_CLASS_ID,
             "coco_category_id": COCO_CATEGORY_ID,
