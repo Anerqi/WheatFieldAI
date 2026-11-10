@@ -11,7 +11,7 @@
 | YOLOX-Dinov3 衍生模型结构 | `src/model_config.py` | 衍生重建自 MADA 平台导出源码包（2026-08-30 经用户提供的导出包实测核验，SHA-256 9c860f51…）：YOLOX 框架类（Megvii 版权头；上游项目社区公开信息为 Apache-2.0）+ 平台扩展（YOLOPAFPNDinoV3 / YOLOXHeadDinoV3）+ DINOv3 ConvNeXt（Meta 版权头，DINOv3 License Agreement） | 来源许可证未完全确认（平台导出包未附 LICENSE/NOTICE 文件，实测确认；上游 YOLOX 框架为 Apache-2.0） | **不受项目 MIT 覆盖**；保留于本仓库以便完整运行；来源授权确认前的使用风险已由本声明显式披露 |
 | 推理适配层 | `src/yolox_inference.py` | 2026-08-30 核验：与导出包内全部候选来源表达式相似度 decode_outputs 0.0 / postprocess 0.133，letterbox/unletterbox/STRIDES 包内不存在 | 项目自研（核验确认） | 纳入项目 MIT 范围；算法遵循 YOLOX 解码定义，表达式为项目自写 |
 | WBF 实现 | `src/wbf.py`、`src/pest_wbf.py` | 项目实现，遵循 Solovyev, Wang, Gabruseva (2021) "Weighted Boxes Fusion" 论文算法定义 | 算法为学术方法；实现按项目代码处理（纳入 MIT） | 注明论文出处；若实现被确认复制自第三方库，将移出 MIT 范围并按原库许可标注 |
-| D-FINE-S ONNX 推理封装 | `src/dfine_onnx.py` | 仅依赖 `numpy/PIL/onnxruntime`；遵循 D-FINE (arXiv:2410.13842) 官方推理协议 | Apache-2.0 | 按 Apache-2.0 分发；权重为本地微调导出 |
+| D-FINE-S ONNX 推理封装与权重 | `src/dfine_onnx.py`；Release `assets-v3` 的 `weed_dfine_s_best.onnx` | 仅依赖 `numpy/PIL/onnxruntime`；遵循 D-FINE (arXiv:2410.13842) 官方推理协议；权重为本地微调后导出 | Apache-2.0 | 按 Apache-2.0 分发；导出记录与格式说明见 `docs/DFINE_ONNX.md` |
 
 ## 2. 经包管理器安装的依赖（本仓库不分发其源码）
 

@@ -14,7 +14,8 @@ CLI 端到端验证（任务 08 双任务系统）。
 7. 边界：空文件、非法内容、纯色空白图（0 框 → 轻）、权重缺失报错
 8. 记录模型首载耗时与缓存后纯推理耗时
 
-用法：python scripts/verify_pipeline.py [--weed-img <path>] [--pest-img <path>] [--out <dir>]
+用法：python scripts/verify_pipeline.py --weed-img <path> --pest-img <path> [--out <dir>]
+（仓库不含真实样例图片，两个图片参数均为必填；也可用 WHEATWEED_VERIFY_WEED_IMG / WHEATWEED_VERIFY_PEST_IMG 提供默认值）
 """
 
 import argparse
@@ -41,9 +42,9 @@ from pest_wbf import load_class_configs, NUM_CLASSES
 from drawing import draw_annotations, encode_image_to_bytes
 
 
-DEFAULT_WEED_IMG = (r"C:\Users\anerqi\Desktop\人工智能大赛\任务输出\02_YOLOX-Dinov3推理管线\val_images"
-                    r"\DJI_20260330150411_0007_D_0_1024_1280_2304.jpg")
-DEFAULT_PEST_IMG = (r"C:\Users\anerqi\Desktop\人工智能大赛\赛题二\test_q2\q2_images\pest24_0000002.jpg")
+# 真实样例图片不随仓库分发：用 --weed-img / --pest-img 指定，或用同名环境变量提供默认值。
+DEFAULT_WEED_IMG = os.environ.get("WHEATWEED_VERIFY_WEED_IMG", "")
+DEFAULT_PEST_IMG = os.environ.get("WHEATWEED_VERIFY_PEST_IMG", "")
 
 
 def main():
@@ -52,6 +53,9 @@ def main():
     ap.add_argument("--pest-img", default=DEFAULT_PEST_IMG)
     ap.add_argument("--out", default=str(_THIS_DIR / "outputs"))
     args = ap.parse_args()
+    for flag, value in (("--weed-img", args.weed_img), ("--pest-img", args.pest_img)):
+        if not value or not os.path.isfile(value):
+            ap.error(f"{flag} 未提供或文件不存在：{value!r}。仓库不含真实样例图片，请显式传入你本地的图片路径。")
 
     os.makedirs(args.out, exist_ok=True)
     results = {"checks": [], "passed": 0, "failed": 0}

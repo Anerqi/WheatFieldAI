@@ -1,0 +1,55 @@
+name: Bug 报告
+description: 报告安装/启动失败、推理结果异常或文档错误
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请先确认：
+        1. 已按 README §5–§7 安装依赖并放置权重（权重不随代码树分发）；
+        2. 若未下载 D-FINE-S 权重或未安装 onnxruntime，页面提示「已退回五模型」属预期行为；
+        3. 已搜索现有 Issue。
+  - type: input
+    id: version
+    attributes:
+      label: 仓库版本
+      description: 提交 SHA、Release 名称或压缩包名称
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 操作系统、Python、PyTorch、CUDA、Streamlit、onnxruntime 版本；是否使用 GPU
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: 推理模式
+      options:
+        - 高精度融合（六模型）
+        - 高精度融合（页面提示已退回五模型）
+        - 快速单模型
+        - 仅安装/启动阶段
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: 1. … 2. … 3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+      description: 请粘贴完整报错栈或相关日志；不要包含凭据与本机绝对路径
+    validations:
+      required: true

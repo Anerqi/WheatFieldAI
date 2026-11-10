@@ -6,9 +6,9 @@ D-FINE-S 杂草检测的 ONNX 推理封装（任务 30 新增，作为 WBF 融�
 == 来源记录（Provenance）==
 模型与权重：D-FINE-S（arXiv:2410.13842）官方仓库 Peterande/D-FINE，Apache-2.0；
   权重 dfine_s_coco.pth 经 hf-mirror 下载（SHA256 48A6C8CC…683E89，与 HF LFS oid 一致），
-  在本地 3,142 图杂草数据上微调 30 epoch 后导出 ONNX（见 任务输出/29_.../dfine/）。
-ONNX 导出与数值对齐证据：任务输出/29_AI模型与图像识别路线调研/dfine/STEP1_ONNX.md
-  模型级 parity：labels 全等、boxes 最大差 1/4 像素、scores 最大差 8.9e-06；
+  在本地 3,142 图杂草数据上微调 30 epoch 后导出 ONNX（导出记录未随仓库分发）。
+权重与校验：Release `assets-v3` 的 `weed_dfine_s_best.onnx`；格式细节见 `docs/DFINE_ONNX.md`。
+数值对齐：模型级 parity labels 全等、boxes 最大差 1/4 像素、scores 最大差 8.9e-06；
   端到端 787 图复算：PyTorch 0.444344 vs ONNX 0.444345。
 == 来源记录结束 ==
 
@@ -16,7 +16,7 @@ ONNX 导出与数值对齐证据：任务输出/29_AI模型与图像识别路线
   1. 只依赖 numpy + PIL + onnxruntime，不导入 D-FINE 仓库代码（其包名 src 与主工程冲突）；
   2. Windows 上 ORT 的 CUDA EP 需要 cuDNN 9 —— torch 的 wheel 自带 cudnn64_9.dll，
      把 torch/lib 加入 DLL 搜索路径即可，无需单独安装（CPU 0.2234 s/图 -> CUDA 0.0129 s/图）；
-  3. 权重缺失/依赖缺失时 available() 返回 False，调用方自动退回五模型（不改变既有行为）。
+  3. 权重缺失或依赖/会话失败时，调用方按 last_ok 视为未参与，并成套退回五模型参数（见 src/fusion_profile.py）。
 """
 
 import os
