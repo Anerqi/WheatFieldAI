@@ -6,9 +6,8 @@ wbf.py
 "Weighted Boxes Fusion" 论文的算法定义。
 
 == 来源记录（Provenance）==
-本文件中的 iou_xyxy / wbf_fuse_boxes 函数从任务 05 run_wbf_experiment.py 逐字节复制：
-  C:\\Users\\anerqi\\Desktop\\人工智能大赛\\任务输出\\05_异构WBF融合精度优化\\run_wbf_experiment.py
-（行 260-340 附近）。未做任何修改。复制目的：Web 系统 WBF 与任务 05 评测 WBF 逻辑完全一致。
+本文件中的 iou_xyxy / wbf_fuse_boxes 函数从项目内部评测脚本 run_wbf_experiment.py 逐字节复制
+（行 260-340 附近；该脚本未随仓库分发）。未做任何修改。复制目的：Web 系统 WBF 与评测 WBF 逻辑完全一致。
 == 来源记录结束 ==
 
 WBF 公式（与任务 05 一致）：
@@ -59,7 +58,7 @@ def wbf_fuse_boxes(boxes_list, scores_list, model_weights,
     == 任务 26 变更说明 ==
     簇构建、坐标聚合、conf_type 语义均未改动。新增的只有最终分数的可选调制，
     默认参数下与任务 05 原实现逐值等价（tests/test_wbf_score_mode.py 有断言）。
-    动机与验证见 任务输出/26_融合框策略与后处理优化/01_result.md。
+    动机与验证见项目内部实验记录（未随仓库分发）。
     """
     n_models = len(boxes_list)
     if n_models == 0:

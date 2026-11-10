@@ -24,7 +24,7 @@ weed:
     yolox_small_weights: "models/weed/dinov3_small/best_ckpt.pth"
     # YOLOX-Dinov3 Base（任务 04/05/06 验证）
     yolox_base_weights: "models/weed/dinov3_base/best_ckpt.pth"
-    # D-FINE-S（任务 30 新增，第 6 支成员；ONNX 导出，见 src/dfine_onnx.py 与任务 29 dfine/STEP1_ONNX.md）
+    # D-FINE-S（任务 30 新增，第 6 支成员；ONNX 权重随 Release assets-v3 提供，说明见 docs/DFINE_ONNX.md）
     dfine_onnx: "models/weed/dfine_s/best.onnx"
 
   # 推理参数（与任务 03/05 评测一致，界面不暴露）
@@ -39,7 +39,7 @@ weed:
     yolox_imgsz: 640
 
   # 业务决策阈值（任务 30 在「六模型 + iou_thr 0.68」的新分数尺度上重新校准：
-  #   F1 最优 0.44 -> 取 0.44，val P=0.780/R=0.788/F1=0.784（校准脚本：任务输出/30_.../calibrate_decision_conf.py）
+  #   F1 最优 0.44 -> 取 0.44，val P=0.780/R=0.788/F1=0.784（校准脚本为内部记录，未随仓库分发）
   #   历史：任务 26 在五模型 geo_agree 尺度上取 0.40（F1 0.774@0.40，最优 0.39=F1 0.785）；
   #        任务 24 的 max 尺度 0.50 为 P=0.729/R=0.801/F1=0.763
   decision_conf: 0.44

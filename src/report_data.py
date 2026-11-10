@@ -226,7 +226,7 @@ def decided_max_confidence(result, decided=None):
 def relative_path_text(path, root):
     """把绝对路径转成相对 root 的展示文本；不在 root 下时只保留文件名。
 
-    页面提示与表格统一走这里，避免把 ``C:\\Users\\...`` 本机路径写进界面或导出文件。
+    页面提示与表格统一走这里，避免把本机绝对路径写进界面或导出文件。
     """
     # 统一分隔符后再比较：Windows 风格路径在 POSIX 环境（CI）下也要能正确取相对段/文件名
     raw = str(path).replace("\\", "/")

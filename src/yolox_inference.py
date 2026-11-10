@@ -7,8 +7,7 @@ YOLOX-Dinov3（Small / Base）单图推理所需函数。
 == 来源记录（Provenance）==
 本文件中的函数从既有已验证推理管线**逐字节复制**，未重新实现：
 - read_image / letterbox / decode_outputs / postprocess / unletterbox_boxes / STRIDES：
-  来源 `任务输出/03_YOLO11s与YOLOX统一评测/run_unified_eval.py`
-  （与 `任务输出/02_YOLOX-Dinov3推理管线/run_inference.py` 完全等价）。
+  来源项目内部评测脚本 run_unified_eval.py（与早期管线 run_inference.py 完全等价；两者均未随仓库分发）。
 - 常量 YOLO_CLASS_ID / COCO_CATEGORY_ID / CATEGORY_NAME：与任务 02/03/05 一致。
 复制目的：保证 Web 系统与评测管线（任务 02/03/05）推理逻辑一致，不产生第二套不一致实现。
 == 来源记录结束 ==

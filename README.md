@@ -7,7 +7,7 @@
 
 <p align="center"><img src="assets/banner.jpg" alt="WheatFieldAI banner" width="720"></p>
 
-**完整运行资产**：八套本地模型权重与训练/验证数据集通过 GitHub Release 提供：`assets-v1` 含原有六套权重与数据集，`assets-v2` 补充两套 YOLO11s 变体。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
+**完整运行资产**：九套本地模型权重与训练/验证数据集通过 GitHub Release 提供：`assets-v1` 含原有六套权重与数据集，`assets-v2` 补充两套 YOLO11s 变体，`assets-v3` 补齐第 9 套 D-FINE-S ONNX 权重。各资产按各自来源条款管理，不适用项目 MIT 许可证。下载、校验与放置方法见 §7.2，许可边界详见 `THIRD_PARTY_NOTICES.md` 与 `LICENSE-BOUNDARY.md`。
 
 > **核心能力概览**：杂草 / 害虫双任务识别 · 高精度融合模式 / 快速单模型模式 · 检测框 / 类别统计 / 危害等级 / 防治方向建议 · 标注 JPG 与结构化 JSON 导出 · 字体与图标本地化，离线可用
 
@@ -67,6 +67,7 @@ WheatFieldAI/
 ├─ configs/                   ← 类别唯一真源与 classwise WBF 配置
 ├─ packaging/                 ← 启动器与检查脚本
 ├─ docs/DEPLOYMENT.md         ← 日志 / 端口 / 现场恢复 / 打包计划
+├─ docs/DFINE_ONNX.md         ← D-FINE-S ONNX 权重来源、格式与放置
 └─ test_images/README.md      ← 验收样例说明（样例图片自备；完整训练/验证数据集经 Release 提供）
 ```
 
@@ -87,6 +88,7 @@ opencv-python 5.0+
 numpy 2.4+
 Pillow 12+
 pandas 2.3+
+onnxruntime >= 1.17（CPU 或 CUDA 版；仅六模型融合的 D-FINE-S 需要）
 ```
 
 CUDA 版 PyTorch 单独安装：
@@ -154,7 +156,7 @@ WHEATWEED_PORT
 | 杂草 | YOLO11s-1280 | `weed/yolo11s_1280/best.pt` | 融合成员（1280，任务 24） |
 | 杂草 | YOLOX-Dinov3 Small | `weed/dinov3_small/best_ckpt.pth` | 高精度融合成员 |
 | 杂草 | YOLOX-Dinov3 Base | `weed/dinov3_base/best_ckpt.pth` | 高精度融合成员 |
-| 杂草 | D-FINE-S | `weed/dfine_s/best.onnx` | 高精度融合第 6 支（ONNX 导出，40.4 MB；**尚未发布到 Release**，缺失时自动退回五模型） |
+| 杂草 | D-FINE-S | `weed/dfine_s/best.onnx` | 高精度融合第 6 支（ONNX，40.4 MB；随 Release `assets-v3` 提供，缺失时自动退回五模型） |
 | 害虫 | YOLO11m | `pest/yolo11m/best.pt` | 快速单模型 / 融合成员 |
 | 害虫 | YOLO11l | `pest/yolo11l/best.pt` | 高精度融合成员 |
 | 害虫 | YOLO11s | `pest/yolo11s/best.pt` | 高精度融合成员 |
@@ -163,9 +165,9 @@ WHEATWEED_PORT
 
 ### 7.2 完整运行资产下载（Release）
 
-八套本地模型权重与训练/验证数据集分两个 Release 提供：`assets-v1` 含原有六套权重与数据集；`assets-v2` 含两套 YOLO11s 变体（box8、1280）。全部不适用项目 MIT，按各自来源条款管理：
+九套本地模型权重与训练/验证数据集分三个 Release 提供：`assets-v1` 含原有六套权重与数据集；`assets-v2` 含两套 YOLO11s 变体（box8、1280）；`assets-v3` 补齐第 9 套 D-FINE-S ONNX。全部不适用项目 MIT，按各自来源条款管理：
 
-> **D-FINE-S（第 6 支）**：`weed/dfine_s/best.onnx` 暂未随 Release 发布。缺少该权重或未安装 `onnxruntime` 时，高精度融合自动退回五模型，并成套切换到五模型校准参数（WBF `iou_thr` 0.65、`decision_conf` 0.40，见 `config.yaml` 的 `weed.wbf.five_model_fallback`）；页面会提示「已退回五模型」，此时对应指标为五模型口径（mAP50-95 0.4623），而不是六模型的 0.4709。
+> **D-FINE-S（第 6 支）**：`weed/dfine_s/best.onnx` 随 Release `assets-v3` 发布（Apache-2.0；来源与格式见 `docs/DFINE_ONNX.md`）。缺少该权重或未安装 `onnxruntime`（见 `requirements.txt`）时，高精度融合自动退回五模型，并成套切换到五模型校准参数（WBF `iou_thr` 0.65、`decision_conf` 0.40，见 `config.yaml` 的 `weed.wbf.five_model_fallback`）；页面会提示「已退回五模型」，此时对应指标为五模型口径（mAP50-95 0.4623），而不是六模型的 0.4709。
 
 ```text
 # assets-v1
@@ -181,15 +183,20 @@ dataset_pest_train_images_v1.part2.zip  ~1.0 GB   害虫训练图片（两卷，
 dataset_pest_labels_splits_v1.zip         13 MB   害虫训练标注 + train/val 划分（相对路径）+ 数据集配置
 SHA256SUMS.txt                                    校验 assets-v1 资产
 
-# assets-v2（五模型融合新增）
+# assets-v2（五模型阶段补充的两套 YOLO11s）
 weed_yolo11s_box8_best.pt                 19 MB   YOLO11s box=8.0 / 960（AGPL-3.0 路径）
 weed_yolo11s_1280_best.pt                 19 MB   YOLO11s / 1280（AGPL-3.0 路径）
 SHA256SUMS_v2.txt                                  八套权重校验清单（含 v1 六套）
+
+# assets-v3（六模型阶段补齐的第 9 套：D-FINE-S ONNX）
+weed_dfine_s_best.onnx                    40.4 MB  D-FINE-S 微调后 ONNX 导出（Apache-2.0）
+SHA256SUMS_v3.txt                                  校验 assets-v3 资产
 ```
 
 下载页：
 - assets-v1: https://github.com/Anerqi/WheatFieldAI/releases/tag/assets-v1
 - assets-v2: https://github.com/Anerqi/WheatFieldAI/releases/tag/assets-v2
+- assets-v3: https://github.com/Anerqi/WheatFieldAI/releases/tag/assets-v3
 
 下载后按对应 `SHA256SUMS` 校验；权重放入 `models/` 对应目录（或用环境变量指定路径）；害虫图片两卷解压到同一目录后与 labels/、splits/ 组合。
 
@@ -206,7 +213,7 @@ python -B packaging/check_models.py
 python -B packaging/check_models.py --print-sha256
 ```
 
-`SHA256SUMS.txt` 用于校验 assets-v1 资产；`SHA256SUMS_v2.txt` 覆盖八套权重（含 assets-v1 六套与 assets-v2 两套）；`packaging/model_assets.yaml` 保存八套本地模型权重的真实 SHA-256 前 12 位。路径唯一真源仍然是 config.yaml。
+`SHA256SUMS.txt` 用于校验 assets-v1 资产；`SHA256SUMS_v2.txt` 覆盖八套权重（含 assets-v1 六套与 assets-v2 两套）；`SHA256SUMS_v3.txt` 校验 assets-v3 的 D-FINE-S ONNX；`packaging/model_assets.yaml` 保存九套本地模型权重的真实 SHA-256 前 12 位。路径唯一真源仍然是 config.yaml。
 
 ## 8. 32 类类别体系与 WBF
 
@@ -299,7 +306,7 @@ mAP50-95 = 0.52410
 - Ultralytics YOLO11 相关模型与实现受 Ultralytics 许可条款约束；本项目公开发布所采用的 YOLO11 资产按 AGPL-3.0 路径处理，具体边界见 `THIRD_PARTY_NOTICES.md`。
 - 得意黑（Smiley Sans）字体随仓库分发，字体本身采用 SIL Open Font License 1.1，版权与许可信息见 `static/FONT-LICENSE.md`；字体不适用项目 MIT。
 - 小麦田图标（`static/wheat-icon-*.png`）为项目 UI 资源，经作者确认随仓库分发，纳入项目 MIT 范围。
-- 八套模型权重与训练/验证数据集**不在代码树内**：`assets-v1`（六套权重 + 数据集）与 `assets-v2`（两套 YOLO11s 变体）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）。下载与放置见 §7.2。
+- 九套模型权重与训练/验证数据集**不在代码树内**：`assets-v1`（六套权重 + 数据集）、`assets-v2`（两套 YOLO11s 变体）与 `assets-v3`（D-FINE-S ONNX）按各自条款提供——YOLO11 系资产按 AGPL-3.0 路径处理；数据集来自 MADA 平台免费公开数据集，作者于 2026-08-31 确认可随本项目再分发；DINOv3 衍生权重按 DINOv3 License 分发（协议副本见 `licenses/DINOv3-License.md`）；D-FINE-S ONNX 权重按 Apache-2.0 分发（见 `THIRD_PARTY_NOTICES.md` 与 `docs/DFINE_ONNX.md`）。下载与放置见 §7.2。
 - 当前**不声称**所有模型 / 数据集许可已完成核验；待核验项与责任人清单见 `THIRD_PARTY_NOTICES.md`。
 
 ## 15. 真实性声明
