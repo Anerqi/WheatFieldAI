@@ -383,5 +383,36 @@ class DegradeTests(unittest.TestCase):
         self.assertIs(out["advice"]["computed"], False)
 
 
+class FieldAreaScopeTests(unittest.TestCase):
+    """批量上传时一个面积输入套用整批：口径来源必须写进 hazard，供页面与 JSON 如实标注。"""
+
+    def test_default_scope_is_single(self):
+        hz = apply_field_area(make_result(), CFG, field_area_value=10)["hazard"]
+        self.assertEqual(hz["field_area_scope"], "single")
+
+    def test_batch_shared_scope_recorded(self):
+        hz = apply_field_area(
+            make_result(), CFG, field_area_value=10, field_area_scope="batch_shared"
+        )["hazard"]
+        self.assertEqual(hz["field_area_scope"], "batch_shared")
+
+    def test_scope_none_without_area(self):
+        hz = apply_field_area(
+            make_result(), CFG, field_area_value=None, field_area_scope="batch_shared"
+        )["hazard"]
+        self.assertIsNone(hz["field_area_scope"])
+
+    def test_scope_does_not_change_level(self):
+        a = apply_field_area(make_result(), CFG, field_area_value=10)["hazard"]
+        b = apply_field_area(
+            make_result(), CFG, field_area_value=10, field_area_scope="batch_shared"
+        )["hazard"]
+        self.assertEqual((a["level"], a["density_per_m2"]), (b["level"], b["density_per_m2"]))
+
+    def test_invalid_scope_rejected(self):
+        with self.assertRaises(ValueError):
+            apply_field_area(make_result(), CFG, field_area_value=10, field_area_scope="all")
+
+
 if __name__ == "__main__":
     unittest.main()

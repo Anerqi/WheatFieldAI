@@ -154,7 +154,7 @@ WHEATWEED_PORT
 | 杂草 | YOLO11s-1280 | `weed/yolo11s_1280/best.pt` | 融合成员（1280，任务 24） |
 | 杂草 | YOLOX-Dinov3 Small | `weed/dinov3_small/best_ckpt.pth` | 高精度融合成员 |
 | 杂草 | YOLOX-Dinov3 Base | `weed/dinov3_base/best_ckpt.pth` | 高精度融合成员 |
-| 杂草 | D-FINE-S | `weed/dfine_s/best.onnx` | 高精度融合成员（ONNX 导出，40.4 MB） |
+| 杂草 | D-FINE-S | `weed/dfine_s/best.onnx` | 高精度融合第 6 支（ONNX 导出，40.4 MB；**尚未发布到 Release**，缺失时自动退回五模型） |
 | 害虫 | YOLO11m | `pest/yolo11m/best.pt` | 快速单模型 / 融合成员 |
 | 害虫 | YOLO11l | `pest/yolo11l/best.pt` | 高精度融合成员 |
 | 害虫 | YOLO11s | `pest/yolo11s/best.pt` | 高精度融合成员 |
@@ -164,6 +164,8 @@ WHEATWEED_PORT
 ### 7.2 完整运行资产下载（Release）
 
 八套本地模型权重与训练/验证数据集分两个 Release 提供：`assets-v1` 含原有六套权重与数据集；`assets-v2` 含两套 YOLO11s 变体（box8、1280）。全部不适用项目 MIT，按各自来源条款管理：
+
+> **D-FINE-S（第 6 支）**：`weed/dfine_s/best.onnx` 暂未随 Release 发布。缺少该权重或未安装 `onnxruntime` 时，高精度融合自动退回五模型，并成套切换到五模型校准参数（WBF `iou_thr` 0.65、`decision_conf` 0.40，见 `config.yaml` 的 `weed.wbf.five_model_fallback`）；页面会提示「已退回五模型」，此时对应指标为五模型口径（mAP50-95 0.4623），而不是六模型的 0.4709。
 
 ```text
 # assets-v1

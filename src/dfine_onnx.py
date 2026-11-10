@@ -45,6 +45,7 @@ class DFineOnnxWeed:
         self.verbose = verbose
         self._session = None
         self._error = None
+        self.last_ok = False  # 最近一次 infer() 是否真正完成（见 infer 说明）
         self.providers = []
 
     # ------------------------------------------------------------------
@@ -94,7 +95,12 @@ class DFineOnnxWeed:
 
     # ------------------------------------------------------------------
     def infer(self, img_bgr):
-        """BGR ndarray -> (boxes Nx4 xyxy float, scores N)。异常时返回空结果。"""
+        """BGR ndarray -> (boxes Nx4 xyxy float, scores N)。异常时返回空结果。
+
+        调用后 ``self.last_ok`` 标明本次是否真正完成推理：会话创建或运行失败时为 False，
+        调用方据此把 D-FINE-S 视为「未参与」，而不是把空结果当成第 6 路成员参与融合。
+        """
+        self.last_ok = False
         if not self._ensure():
             return np.zeros((0, 4)), np.zeros((0,))
         from PIL import Image
@@ -114,6 +120,7 @@ class DFineOnnxWeed:
         b = np.asarray(boxes)[0], np.asarray(scores)[0]
         boxes_xyxy, sc = b[0], b[1]
         keep = sc >= self.score_thr
+        self.last_ok = True
         return boxes_xyxy[keep].astype(float), sc[keep].astype(float)
 
 

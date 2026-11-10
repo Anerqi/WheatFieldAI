@@ -46,6 +46,10 @@ pest:
 - 值域仍为 [0,1]，不破坏百分比语义；
 - `score_mode="raw"` 时与任务 24 的 `conf_type=max` 行为一致，可回退。
 
+### 2.3 五模型退回档
+
+D-FINE-S 未参与融合（未启用、权重缺失、`onnxruntime` 未安装或会话运行失败）时，`src/fusion_profile.py` 成套切换到 `weed.wbf.five_model_fallback`：`iou_thr` **0.65**、`decision_conf` **0.40**（任务 26 五模型 `geo_agree` 尺度校准值）。结果 JSON 的 `wbf_params.profile` 标明 `six_model` / `five_model_fallback`，`fusion_degraded` 为 True 时页面提示已退回。
+
 ## 3. 类别映射
 
 ### 3.1 杂草

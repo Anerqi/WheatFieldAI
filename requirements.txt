@@ -8,3 +8,5 @@ numpy>=1.26
 PyYAML>=6.0.3
 Pillow>=10.0
 pandas>=2.0
+# D-FINE-S（杂草融合第 6 支，ONNX）。有 CUDA 时可改装 onnxruntime-gpu；未安装时自动退回五模型。
+onnxruntime>=1.17

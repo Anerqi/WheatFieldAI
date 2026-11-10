@@ -130,13 +130,17 @@ def main():
     # 参数取值本身由 tests/test_wbf_score_mode.py 与 tests/test_decision.py 覆盖；
     # 这里要抓的是「推理没有按配置执行」这类回归。
     _wbf_cfg = cfg["weed"]["wbf"]
-    check("杂草 WBF 参数与 config.yaml 一致（iou/skip/conf_type/score_mode/weights）",
+    from fusion_profile import resolve_fusion_profile
+    _prof = resolve_fusion_profile(cfg["weed"], "D-FINE-S" in wr["models_used"])
+    check("杂草 WBF 参数与 config.yaml 一致（档位/iou/skip/conf_type/score_mode/weights）",
           bool(wr["wbf_params"])
-          and wr["wbf_params"]["iou_thr"] == _wbf_cfg["iou_thr"]
+          and wr["wbf_params"]["profile"] == _prof["profile"]
+          and wr["wbf_params"]["iou_thr"] == _prof["iou_thr"]
+          and wr["decision_conf"] == _prof["decision_conf"]
           and wr["wbf_params"]["skip_box_thr"] == _wbf_cfg["skip_box_thr"]
           and wr["wbf_params"]["conf_type"] == _wbf_cfg["conf_type"]
           and wr["wbf_params"]["score_mode"] == _wbf_cfg.get("score_mode", "raw")
-          and wr["wbf_params"]["weights"] == list(_wbf_cfg["weights"]),
+          and wr["wbf_params"]["weights"] == list(_wbf_cfg["weights"])[: len(wr["models_used"])],
           f"actual={wr['wbf_params']}")
     check("杂草融合首载 + 纯推理耗时已记录",
           wr["model_load_ms"] > 0 and wr["net_inference_ms"] > 0,

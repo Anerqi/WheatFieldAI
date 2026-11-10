@@ -388,11 +388,15 @@ with col_c:
         # 避免 segmented_control 无标签而浮到标签行、与输入框上下错位。
         a_val_col,a_unit_col=st.columns([3,1],gap="small",vertical_alignment="bottom")
         with a_val_col:
-            field_area_value=st.number_input("拍摄区域面积（选填）",value=None,min_value=0.0,step=0.5,format="%.2f",placeholder="例如 10",key=f"field_area_value_{task_key}",help="填写这张图片实际覆盖的地面面积。留空时不显示危害等级与防治建议。")
+            # 批量时只有一个面积输入，会套用到本批每一张图：标签与说明必须如实写明
+            area_is_batch=bool(uploaded_files) and len(uploaded_files)>1
+            area_label="每张图的拍摄面积（选填，本批共用）" if area_is_batch else "拍摄区域面积（选填）"
+            area_help=("本批每张图片都按这一面积计算密度。各图拍摄范围不同时，请按相近范围分批上传。留空时不显示危害等级与防治建议。" if area_is_batch else "填写这张图片实际覆盖的地面面积。留空时不显示危害等级与防治建议。")
+            field_area_value=st.number_input(area_label,value=None,min_value=0.0,step=0.5,format="%.2f",placeholder="例如 10",key=f"field_area_value_{task_key}",help=area_help)
         with a_unit_col:
             area_unit_label=st.segmented_control("面积单位",["㎡","亩"],default="㎡",key=f"field_area_unit_{task_key}",label_visibility="collapsed")
         field_area_unit="mu" if area_unit_label=="亩" else "m2"
-        st.markdown('<div class="area-hint">不填写面积 → 不显示严重程度；填写后按 <strong>正式框数 ÷ 实际面积</strong> 估算密度。</div>',unsafe_allow_html=True)
+        st.markdown('<div class="area-hint">不填写面积 → 不显示严重程度；填写后按 <strong>正式框数 ÷ 实际面积</strong> 估算密度。'+('<br>批量上传时<strong>每张图都按同一面积</strong>计算。' if area_is_batch else '')+'</div>',unsafe_allow_html=True)
 with col_s:
     with st.spinner("正在加载模型…"):
         manager=get_model_manager(cfg)
@@ -542,7 +546,7 @@ def new_entry(idx, up, fname, img_bgr):
         "cache_key": None,
     }
 
-def infer_entry(entry, task_key, mode_key, manager, cfg, up, field_area_value=None, field_area_unit="m2"):
+def infer_entry(entry, task_key, mode_key, manager, cfg, up, field_area_value=None, field_area_unit="m2", field_area_scope="single"):
     """对已校验的 entry 做推理（命中 results_cache 时零成本）。返回 entry。
 
     拍摄面积在「展示层」以幂等方式重算危害等级：缓存的是未经加工的原始推理结果，
@@ -555,7 +559,7 @@ def infer_entry(entry, task_key, mode_key, manager, cfg, up, field_area_value=No
     entry["cache_key"] = cache_key
     result = results_cache.get(cache_key)
     if result is not None:
-        entry["result"] = apply_field_area(result, cfg, task_key, field_area_value, field_area_unit)
+        entry["result"] = apply_field_area(result, cfg, task_key, field_area_value, field_area_unit, field_area_scope)
         entry["status"] = "ok"
         return entry
     st.session_state["last_oom"] = False
@@ -581,7 +585,7 @@ def infer_entry(entry, task_key, mode_key, manager, cfg, up, field_area_value=No
     while len(results_cache) > 12:
         results_cache.pop(next(iter(results_cache)))
     st.session_state["last_oom"] = False
-    entry["result"] = apply_field_area(result, cfg, task_key, field_area_value, field_area_unit)
+    entry["result"] = apply_field_area(result, cfg, task_key, field_area_value, field_area_unit, field_area_scope)
     entry["status"] = "ok"
     return entry
 
@@ -616,6 +620,9 @@ def render_result_block(entry, task_key, mode_key, show_kpi=True):
     # ---- 首屏紧凑摘要条（正式框数 / 正式最高置信度 / 危害等级 / 耗时）----
     if show_kpi:
         st.markdown(kpi_strip_html(entry, task_key), unsafe_allow_html=True)
+    # D-FINE-S 已启用却未参与（权重或 onnxruntime 缺失）：如实告知已退回五模型及其阈值
+    if result.get("fusion_degraded"):
+        st.markdown(f'<div class="info-note"><span class="info-tag">已退回五模型</span>D-FINE-S 权重或 onnxruntime 不可用，本次按五模型 WBF 融合（iou {result["wbf_params"]["iou_thr"]}，正式检测阈值 {result["decision_conf"]:.2f}）；对应验证集指标为五模型口径 mAP50-95 0.4623，而非六模型 0.4709。</div>',unsafe_allow_html=True)
 
     # ---- 行2：原图盒(6) + 标注盒(6) ----
     c_i1,c_i2=st.columns([6,6],gap="medium")
@@ -752,11 +759,11 @@ def render_result_block(entry, task_key, mode_key, show_kpi=True):
         if result.get("includes_first_load"):meta.append(f'首次模型加载：{result["model_load_ms"]:.0f} ms')
         if show_hazard:
             hz=result["hazard"]
-            meta.append(f'拍摄面积：{float(hz.get("field_area_m2") or 0):.2f} ㎡（输入 {hz.get("field_area_value")} {hz.get("field_area_unit")}） · 检出密度 {float(hz.get("density_per_m2") or 0):.2f} 个/㎡')
+            meta.append(f'拍摄面积：{float(hz.get("field_area_m2") or 0):.2f} ㎡（输入 {hz.get("field_area_value")} {hz.get("field_area_unit")}{"，本批共用" if hz.get("field_area_scope")=="batch_shared" else ""}） · 检出密度 {float(hz.get("density_per_m2") or 0):.2f} 个/㎡')
         else:
             meta.append('拍摄面积：未填写（不显示危害等级与防治建议）')
         wp=result.get("wbf_params")
-        if wp:meta.append(f'WBF：iou={wp["iou_thr"]}, skip={wp["skip_box_thr"]}, conf={wp["conf_type"]}, weights={wp["weights"]}' if "iou_thr" in wp else f'融合：{wp["type"]}（配置来源：{wp.get("config_source","")}）')
+        if wp:meta.append(f'WBF：档位={wp.get("profile","six_model")}, iou={wp["iou_thr"]}, skip={wp["skip_box_thr"]}, conf={wp["conf_type"]}, weights={wp["weights"]}' if "iou_thr" in wp else f'融合：{wp["type"]}（配置来源：{wp.get("config_source","")}）')
         st.markdown('<div class="tech-details">'+"<br>".join(escape(x) for x in meta)+"</div>",unsafe_allow_html=True)
 
 def batch_table_html(rows, show_hazard=True):
@@ -892,7 +899,7 @@ if uploaded_files:
             if problems:
                 entry["status"]="invalid";entry["error"]=problems[0]
             else:
-                infer_entry(entry,task_key,mode_key,manager,cfg,up,field_area_value,field_area_unit)
+                infer_entry(entry,task_key,mode_key,manager,cfg,up,field_area_value,field_area_unit,"batch_shared")
             entries.append(entry)
         progress_box.empty()
         render_batch_overview(entries,task_key,mode_key)
@@ -928,6 +935,6 @@ if uploaded_files:
 
 # 附录：与「推理参数与模型详情」一致，默认展开（用户 2026-11-07 要求）；不再重复品牌字标
 with st.expander("验证集指标与模型说明",expanded=True):
-    st.markdown('<div class="footer-body"><strong>杂草侧</strong>：YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small/Base + D-FINE-S 六模型 WBF（iou_thr 0.68）；本地验证集 COCO 评测 mAP50=0.8403、mAP50-95=0.4709、AP75=0.4683，基于 787 张验证集图片、2596 个标注框。该结果不是独立测试集指标，不代表对任意上传图片的精度承诺。<br><strong>害虫侧</strong>：YOLO11m + YOLO11l + YOLO11s refined classwise WBF；本地验证集 mAP50=0.80524、mAP50-95=0.52410。平台测试集没有公开真值，平台实际分数以正式评测为准。<br><strong>类别</strong>：杂草 1 类：Obonianghao（播娘蒿）；害虫 32 类英文标准名，运行时从 dataset.yaml names 段加载并严格保持 ID 0–31 顺序。指标均为验证集口径。</div>',unsafe_allow_html=True)
+    st.markdown('<div class="footer-body"><strong>杂草侧</strong>：YOLO11s（960）+ YOLO11s-box8（960）+ YOLO11s-1280 + YOLOX-Dinov3 Small/Base + D-FINE-S 六模型 WBF（iou_thr 0.68）；本地验证集 COCO 评测 mAP50=0.8403、mAP50-95=0.4709、AP75=0.4683，基于 787 张验证集图片、2596 个标注框。D-FINE-S 不可用时自动退回五模型（iou_thr 0.65、正式检测阈值 0.40，mAP50-95=0.4623）。该结果不是独立测试集指标，不代表对任意上传图片的精度承诺。<br><strong>害虫侧</strong>：YOLO11m + YOLO11l + YOLO11s refined classwise WBF；本地验证集 mAP50=0.80524、mAP50-95=0.52410。平台测试集没有公开真值，平台实际分数以正式评测为准。<br><strong>类别</strong>：杂草 1 类：Obonianghao（播娘蒿）；害虫 32 类英文标准名，运行时从 dataset.yaml names 段加载并严格保持 ID 0–31 顺序。指标均为验证集口径。</div>',unsafe_allow_html=True)
 # 原型声明从状态卡移至页脚，改为一行轻量提示
 st.markdown(f'<div class="site-footer"><div class="footer-note">{lucide("alert",15)}<span>原型系统声明：危害等级与防治建议由规则模板生成，分级阈值为未经农学专家校准的演示值，不构成防治处方或正式农业决策依据；正式应用前需农学专家审核。</span></div></div>',unsafe_allow_html=True)
